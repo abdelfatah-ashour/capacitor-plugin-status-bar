@@ -204,7 +204,7 @@ public class CAPStatusBar extends Plugin {
         } else if ("CUSTOM".equalsIgnoreCase(style)) {
             // CUSTOM: Derive icon color from provided custom color
             int parsed = parseColorOrDefault(colorHex, Color.BLACK);
-            boolean isLight = ColorUtils.calculateLuminance(parsed) > 0.5;
+            boolean isLight = isEffectiveLightColor(parsed);
             // If background is light, request dark icons
             setLightStatusBarIcons(window, isLight);
             lightBackground = isLight;
@@ -258,6 +258,39 @@ public class CAPStatusBar extends Plugin {
 
         int color = parseColorOrDefault(colorHex, Color.WHITE);
         applyWindowBackground(activity, color);
+    }
+
+    /**
+     * Set the status bar color only.
+     * Updates only the status bar background color without affecting the navigation bar
+     * or changing the status bar content style.
+     *
+     * @param activity The activity to apply the status bar color to
+     * @param colorHex The hex color string (e.g., "#FFFFFF" or "#FF5733")
+     */
+    public void setStatusBarColor(Activity activity, @Nullable String colorHex) {
+        Log.d(TAG, "setStatusBarColor: colorHex=" + colorHex);
+
+        if (colorHex == null) {
+            Log.w(TAG, "setStatusBarColor: colorHex is null");
+            return;
+        }
+
+        int color = parseColorOrDefault(colorHex, Color.BLACK);
+
+        // Update stored state
+        currentStatusBarColor = color;
+        currentColorHex = colorHex;
+
+                // Apply only status bar background color
+        applyStatusBarBackground(activity, color);
+
+        // Determine and apply appropriate status bar appearance based on effective color brightness
+        Window window = activity.getWindow();
+        boolean isLightColor = isEffectiveLightColor(color);
+        setLightStatusBarIcons(window, isLightColor);
+
+        Log.d(TAG, "setStatusBarColor: Applied color=" + colorHex + " (alpha=" + Color.alpha(color) + "), isLightColor=" + isLightColor);
     }
 
     /**
@@ -339,7 +372,7 @@ public class CAPStatusBar extends Plugin {
             setLightStatusBarIcons(window, false);
         } else if ("CUSTOM".equalsIgnoreCase(currentStyle)) {
             int parsed = parseColorOrDefault(currentColorHex, Color.BLACK);
-            boolean isLight = ColorUtils.calculateLuminance(parsed) > 0.5;
+            boolean isLight = isEffectiveLightColor(parsed);
             setLightStatusBarIcons(window, isLight);
         } else {
             // Default: Auto-detect based on system theme
@@ -570,13 +603,78 @@ public class CAPStatusBar extends Plugin {
             return def;
         }
         try {
-            int parsed = Color.parseColor(color);
+            int parsed = parseHexColor(color);
             Log.d(TAG, "parseColorOrDefault: parsed color=" + color + " -> #" + Integer.toHexString(parsed));
             return parsed;
         } catch (IllegalArgumentException ex) {
             Log.w(TAG, "parseColorOrDefault: invalid color=" + color + ", using default");
             return def;
         }
+    }
+
+    /**
+     * Parse hex color string similar to iOS implementation.
+     * Handles both 6-digit (#RRGGBB) and 8-digit (#RRGGBBAA) formats.
+     *
+     * @param hex The hex color string (with or without # prefix)
+     * @return The parsed color as an integer
+     * @throws IllegalArgumentException if the color format is invalid
+     */
+    private int parseHexColor(String hex) throws IllegalArgumentException {
+        String hexSanitized = hex.trim().replaceFirst("^#", "");
+
+        if (hexSanitized.length() != 6 && hexSanitized.length() != 8) {
+            throw new IllegalArgumentException("Invalid hex color length: " + hexSanitized.length());
+        }
+
+        try {
+            long rgb = Long.parseLong(hexSanitized, 16);
+
+            if (hexSanitized.length() == 6) {
+                // 6-digit format: #RRGGBB (opaque)
+                return (int) (0xFF000000L | rgb);
+            } else {
+                // 8-digit format: #RRGGBBAA
+                int r = (int) ((rgb & 0xFF000000L) >> 24);
+                int g = (int) ((rgb & 0x00FF0000L) >> 16);
+                int b = (int) ((rgb & 0x0000FF00L) >> 8);
+                int a = (int) (rgb & 0x000000FFL);
+
+                return Color.argb(a, r, g, b);
+            }
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid hex color format: " + hex, e);
+        }
+    }
+
+    /**
+     * Calculate effective brightness considering alpha channel.
+     * For transparent colors, we assume they will be blended over a white background.
+     *
+     * @param color The color to analyze
+     * @return true if the effective color appears light, false if dark
+     */
+    private boolean isEffectiveLightColor(@ColorInt int color) {
+        int alpha = Color.alpha(color);
+
+        if (alpha == 255) {
+            // Fully opaque - use standard luminance calculation
+            return ColorUtils.calculateLuminance(color) > 0.5;
+        }
+
+        // For transparent colors, calculate effective color when blended over white background
+        float alphaRatio = alpha / 255.0f;
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
+
+        // Blend with white background (255, 255, 255)
+        int effectiveR = (int) (r * alphaRatio + 255 * (1 - alphaRatio));
+        int effectiveG = (int) (g * alphaRatio + 255 * (1 - alphaRatio));
+        int effectiveB = (int) (b * alphaRatio + 255 * (1 - alphaRatio));
+
+        int effectiveColor = Color.rgb(effectiveR, effectiveG, effectiveB);
+        return ColorUtils.calculateLuminance(effectiveColor) > 0.5;
     }
 
     /**

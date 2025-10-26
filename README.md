@@ -38,6 +38,7 @@ No additional configuration required. The plugin works out of the box on Android
 * [`hide(...)`](#hide)
 * [`setOverlaysWebView(...)`](#setoverlayswebview)
 * [`setBackground(...)`](#setbackground)
+* [`setStatusBarColor(...)`](#setstatusbarcolor)
 * [`getSafeAreaInsets()`](#getsafeareainsets)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -122,6 +123,21 @@ Set the window background color.
 --------------------
 
 
+### setStatusBarColor(...)
+
+```typescript
+setStatusBarColor(options: StatusBarSetColorOptions) => Promise<void>
+```
+
+Set the status bar color only.
+
+| Param         | Type                                                                          | Description                                |
+| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
+| **`options`** | <code><a href="#statusbarsetcoloroptions">StatusBarSetColorOptions</a></code> | - The options to set the status bar color. |
+
+--------------------
+
+
 ### getSafeAreaInsets()
 
 ```typescript
@@ -182,6 +198,11 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 
 
 #### StatusBarSetBackgroundOptions
+
+<code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
+
+
+#### StatusBarSetColorOptions
 
 <code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
 

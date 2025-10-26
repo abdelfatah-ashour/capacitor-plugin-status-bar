@@ -180,6 +180,45 @@ import Capacitor
         }
     }
 
+    @objc public func setStatusBarColor(colorHex: String?) {
+        DispatchQueue.main.async {
+            guard let colorHex = colorHex, let color = self.colorFromHex(colorHex) else {
+                print("CAPStatusBar: setStatusBarColor - Invalid color or nil")
+                return
+            }
+
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first,
+                  let statusBarManager = windowScene.statusBarManager else {
+                print("CAPStatusBar: setStatusBarColor - Unable to get window or status bar manager")
+                return
+            }
+
+            // Store the current background color for restoration
+            self.currentBackgroundColor = color
+
+            // Update the status bar background view
+            self.updateStatusBarBackgroundView(in: window,
+                                               height: statusBarManager.statusBarFrame.height,
+                                               color: color)
+
+            // Determine and set the appropriate status bar style based on color brightness
+            let brightness = self.getColorBrightness(color)
+            let statusBarStyle: UIStatusBarStyle = brightness > 0.5 ? .darkContent : .lightContent
+
+            if #available(iOS 13.0, *) {
+                if let viewController = window.rootViewController {
+                    viewController.overrideUserInterfaceStyle = brightness > 0.5 ? .light : .dark
+                }
+            }
+
+            // Apply status bar style
+            UIApplication.shared.statusBarStyle = statusBarStyle
+
+            print("CAPStatusBar: setStatusBarColor - Set status bar color to \(colorHex), brightness: \(brightness), style: \(statusBarStyle)")
+        }
+    }
+
     @objc public func getSafeAreaInsets(completion: @escaping ([String: CGFloat]) -> Void) {
         DispatchQueue.main.async {
             var insets: [String: CGFloat] = ["top": 0, "bottom": 0, "left": 0, "right": 0]

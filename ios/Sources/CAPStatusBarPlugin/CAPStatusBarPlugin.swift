@@ -15,6 +15,7 @@ public class CAPStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setOverlaysWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setBackground", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setStatusBarColor", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getSafeAreaInsets", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = CAPStatusBar()
@@ -59,6 +60,15 @@ public class CAPStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         implementation.setBackground(colorHex: color)
+        call.resolve()
+    }
+
+    @objc func setStatusBarColor(_ call: CAPPluginCall) {
+        guard let color = call.getString("color") else {
+            call.reject("color is required")
+            return
+        }
+        implementation.setStatusBarColor(colorHex: color)
         call.resolve()
     }
 

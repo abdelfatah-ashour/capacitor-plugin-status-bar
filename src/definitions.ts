@@ -48,6 +48,10 @@ export type StatusBarSetBackgroundOptions = {
   color: StatusBarColor;
 };
 
+export type StatusBarSetColorOptions = {
+  color: StatusBarColor;
+};
+
 export type SafeAreaInsets = {
   top: number;
   bottom: number;
@@ -87,6 +91,12 @@ export interface CAPStatusBarPlugin {
    * @param options.color - The background color in HEX format.
    */
   setBackground(options: StatusBarSetBackgroundOptions): Promise<void>;
+  /**
+   * Set the status bar color only.
+   * @param options - The options to set the status bar color.
+   * @param options.color - The status bar color in HEX format (6 or 8 digits with alpha).
+   */
+  setStatusBarColor(options: StatusBarSetColorOptions): Promise<void>;
   /**
    * Get the safe area insets.
    * Returns the insets for status bar, navigation bar, and notch areas.

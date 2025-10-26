@@ -25,3 +25,31 @@
 #container a {
   text-decoration: none;
 }
+
+// Quick color buttons styling
+ion-item ion-button {
+  margin: 2px;
+  --border-radius: 8px;
+
+  &[size="small"] {
+    --padding-start: 8px;
+    --padding-end: 8px;
+    font-size: 0.8em;
+  }
+}
+
+// Status bar color input styling
+ion-input {
+  --padding-start: 8px;
+  --padding-end: 8px;
+  border: 1px solid var(--ion-color-medium);
+  border-radius: 4px;
+  margin-top: 4px;
+}
+
+// Section divider styling
+ion-item-divider {
+  --background: var(--ion-color-primary);
+  --color: var(--ion-color-primary-contrast);
+  font-weight: 600;
+}

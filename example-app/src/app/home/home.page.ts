@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { CAPStatusBar, Style, StatusBarColor} from "cap-status-bar";
 import {SafeAreaInsets} from "cap-status-bar";
@@ -10,7 +10,7 @@ import { JsonPipe } from '@angular/common';
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, FormsModule,JsonPipe],
+  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider, FormsModule, JsonPipe],
 })
 export class HomePage {
   // Expose enum to template
@@ -18,6 +18,7 @@ export class HomePage {
 
   style = signal<Style>(Style.LIGHT);
   color = signal<StatusBarColor>("#800080");
+  statusBarColor = signal<StatusBarColor>("#FF5733");
   overlaysWebView = signal(true);
   animated = signal(true);
   safeAreaInsets = signal<SafeAreaInsets>({ top: 0, bottom: 0, left: 0, right: 0 });
@@ -41,6 +42,15 @@ export class HomePage {
 
   async getSafeAreaInsets() {
     this.safeAreaInsets.set(await CAPStatusBar.getSafeAreaInsets());
+  }
+
+  async setStatusBarColor() {
+    await CAPStatusBar.setStatusBarColor({ color: this.statusBarColor() });
+  }
+
+  async setQuickColor(color: StatusBarColor) {
+    this.statusBarColor.set(color);
+    await this.setStatusBarColor();
   }
 
   navigateToChat() {

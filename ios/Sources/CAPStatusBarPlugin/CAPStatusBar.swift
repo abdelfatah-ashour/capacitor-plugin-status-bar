@@ -90,24 +90,34 @@ import Capacitor
         }
     }
 
-    @objc public func hide(animated: Bool) {
+    @objc public func hide(animation: String) {
         DispatchQueue.main.async {
-            // Note: Status bar visibility is controlled through view controllers in modern iOS.
-            // This plugin requires UIViewControllerBasedStatusBarAppearance to be set to NO
-            // in the app's Info.plist for programmatic show/hide to work.
+            let animationType = animation.lowercased()
 
             // Log current status bar state via status bar manager
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let statusBarManager = windowScene.statusBarManager {
-                print("CAPStatusBar: hide() - Current hidden state: \(statusBarManager.isStatusBarHidden)")
+                print("CAPStatusBar: hide() - animation=\(animationType), Current hidden state: \(statusBarManager.isStatusBarHidden)")
             }
 
-            // Set visibility using the application-level API
-            // Note: This requires UIViewControllerBasedStatusBarAppearance = NO
-            self.setStatusBarVisibility(hidden: true, animated: animated)
-
-            // Make the background view transparent when hiding
-            self.makeStatusBarBackgroundTransparent()
+            if animationType == "fade" {
+                // Fade mode: Make background transparent without removing status bar
+                print("CAPStatusBar: hide() - fade mode: making background transparent")
+                self.makeStatusBarBackgroundTransparent()
+            } else if animationType == "slide" {
+                // Slide mode: Hide the status bar completely (current behavior)
+                print("CAPStatusBar: hide() - slide mode: hiding bars completely")
+                // Note: Status bar visibility is controlled through view controllers in modern iOS.
+                // This plugin requires UIViewControllerBasedStatusBarAppearance to be set to NO
+                // in the app's Info.plist for programmatic show/hide to work.
+                self.setStatusBarVisibility(hidden: true, animated: true)
+                // Also make the background view transparent when hiding
+                self.makeStatusBarBackgroundTransparent()
+            } else {
+                print("CAPStatusBar: hide() - unknown animation type '\(animationType)', defaulting to slide")
+                self.setStatusBarVisibility(hidden: true, animated: true)
+                self.makeStatusBarBackgroundTransparent()
+            }
         }
     }
 

@@ -43,8 +43,11 @@ public class CAPStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func hide(_ call: CAPPluginCall) {
-        let animated = call.getBool("animated") ?? true
-        implementation.hide(animated: animated)
+        guard let animation = call.getString("animation") else {
+            call.reject("animation is required")
+            return
+        }
+        implementation.hide(animation: animation)
         call.resolve()
     }
 

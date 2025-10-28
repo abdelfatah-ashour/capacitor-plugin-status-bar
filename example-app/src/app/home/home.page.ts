@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
-import { CAPStatusBar, Style, StatusBarColor} from "cap-status-bar";
+import { CAPStatusBar, Style, StatusBarColor, StatusBarAnimation} from "cap-status-bar";
 import {SafeAreaInsets} from "cap-status-bar";
 import { JsonPipe } from '@angular/common';
 
@@ -32,8 +32,12 @@ export class HomePage {
     await CAPStatusBar.show({ animated: this.animated() });
   }
 
-  async hide() {
-    await CAPStatusBar.hide({ animated: this.animated() });
+  async hideInFade() {
+    await CAPStatusBar.hide({ animation: StatusBarAnimation.FADE });
+  }
+
+  async hideInSlide() {
+    await CAPStatusBar.hide({ animation: StatusBarAnimation.SLIDE });
   }
 
   async setOverlay() {

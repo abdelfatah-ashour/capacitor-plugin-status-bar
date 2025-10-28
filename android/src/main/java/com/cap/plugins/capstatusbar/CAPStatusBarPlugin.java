@@ -53,9 +53,13 @@ public class CAPStatusBarPlugin extends Plugin {
     @PluginMethod
     public void hide(PluginCall call) {
         try {
-            boolean animated = Boolean.TRUE.equals(call.getBoolean("animated", true));
+            String animation = call.getString("animation");
+            if (animation == null) {
+                call.reject("animation is required");
+                return;
+            }
             getActivity().runOnUiThread(() -> {
-                implementation.hideStatusBar(getActivity(), animated);
+                implementation.hideStatusBar(getActivity(), animation);
                 call.resolve();
             });
         } catch (Exception e) {

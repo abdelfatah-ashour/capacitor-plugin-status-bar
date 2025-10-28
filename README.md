@@ -189,7 +189,7 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 
 #### StatusBarHideOptions
 
-<code>{ animated: boolean; }</code>
+<code>{ /** * The animation type for hiding the status bar. * - 'fade': Makes the background transparent without removing the status bar and navigation bar. * - 'slide': Hides the status bar and navigation bar completely (default behavior). */ animation: <a href="#statusbaranimation">StatusBarAnimation</a>; }</code>
 
 
 #### StatusBarSetOverlaysWebViewOptions
@@ -222,5 +222,14 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 | **`LIGHT`**  | <code>'LIGHT'</code>  |
 | **`DARK`**   | <code>'DARK'</code>   |
 | **`CUSTOM`** | <code>'CUSTOM'</code> |
+
+
+#### StatusBarAnimation
+
+| Members     | Value                |
+| ----------- | -------------------- |
+| **`NONE`**  | <code>'none'</code>  |
+| **`FADE`**  | <code>'fade'</code>  |
+| **`SLIDE`** | <code>'slide'</code> |
 
 </docgen-api>

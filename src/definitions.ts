@@ -37,7 +37,12 @@ export type StatusBarShowOptions = {
 };
 
 export type StatusBarHideOptions = {
-  animated: boolean;
+  /**
+   * The animation type for hiding the status bar.
+   * - 'fade': Makes the background transparent without removing the status bar and navigation bar.
+   * - 'slide': Hides the status bar and navigation bar completely (default behavior).
+   */
+  animation: StatusBarAnimation;
 };
 
 export type StatusBarSetOverlaysWebViewOptions = {
@@ -76,7 +81,7 @@ export interface CAPStatusBarPlugin {
   /**
    * Hide the status bar.
    * @param options - The options to hide the status bar.
-   * @param options.animated - Whether to animate the status bar.
+   * @param options.animation - The animation type: 'fade' makes background transparent, 'slide' hides bars completely.
    */
   hide(options: StatusBarHideOptions): Promise<void>;
   /**

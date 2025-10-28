@@ -142,40 +142,56 @@ public class CAPStatusBar extends Plugin {
         restoreStatusBarBackground(activity);
     }
 
-    public void hideStatusBar(Activity activity, boolean animated) {
-        Log.d(TAG, "hideStatusBar: animated=" + animated + ", API=" + Build.VERSION.SDK_INT);
+    public void hideStatusBar(Activity activity, String animation) {
+        Log.d(TAG, "hideStatusBar: animation=" + animation + ", API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+ (Android 11+) - Use WindowInsetsController
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                Log.d(TAG, "hideStatusBar: hiding system bars (API 30+)");
-                // Hide both status and navigation bars together
-                controller.hide(WindowInsets.Type.systemBars());
-                // Set behavior for immersive mode (user can swipe to reveal temporarily)
-                controller.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            } else {
-                Log.w(TAG, "hideStatusBar: WindowInsetsController is null");
-            }
-        } else {
-            // API 29 (Android 10) - Use system UI visibility flags (deprecated but
-            // necessary)
-            Log.d(TAG, "setStyle: hiding using system UI flags (API 29)");
-            // Use immersive sticky mode with proper layout flags for Android 10
-            decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN);
-        }
+        String animationType = animation != null ? animation.toLowerCase() : "slide";
 
-        // Make the overlay backgrounds transparent so content shows through
-        makeStatusBarBackgroundTransparent(activity);
+        if ("fade".equals(animationType)) {
+            // Fade mode: Make background transparent without removing status bar and
+            // navigation bar
+            Log.d(TAG, "hideStatusBar: fade mode - making backgrounds transparent");
+            makeStatusBarBackgroundTransparent(activity);
+        } else if ("slide".equals(animationType)) {
+            // Slide mode: Hide status bar and navigation bar completely (current behavior)
+            Log.d(TAG, "hideStatusBar: slide mode - hiding bars completely");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // API 30+ (Android 11+) - Use WindowInsetsController
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    Log.d(TAG, "hideStatusBar: hiding system bars (API 30+)");
+                    // Hide both status and navigation bars together
+                    controller.hide(WindowInsets.Type.systemBars());
+                    // Set behavior for immersive mode (user can swipe to reveal temporarily)
+                    controller.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                } else {
+                    Log.w(TAG, "hideStatusBar: WindowInsetsController is null");
+                }
+            } else {
+                // API 29 (Android 10) - Use system UI visibility flags (deprecated but
+                // necessary)
+                Log.d(TAG, "hideStatusBar: hiding using system UI flags (API 29)");
+                // Use immersive sticky mode with proper layout flags for Android 10
+                decorView.setSystemUiVisibility(
+                        View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_FULLSCREEN);
+            }
+
+            // Make the overlay backgrounds transparent so content shows through
+            makeStatusBarBackgroundTransparent(activity);
+        } else {
+            // Unknown animation type, default to slide
+            Log.w(TAG, "hideStatusBar: unknown animation type '" + animationType + "', defaulting to slide");
+            hideStatusBar(activity, "slide");
+        }
     }
 
     public void setStyle(Activity activity, String style, @Nullable String colorHex) {
@@ -262,7 +278,8 @@ public class CAPStatusBar extends Plugin {
 
     /**
      * Set the status bar color only.
-     * Updates only the status bar background color without affecting the navigation bar
+     * Updates only the status bar background color without affecting the navigation
+     * bar
      * or changing the status bar content style.
      *
      * @param activity The activity to apply the status bar color to
@@ -282,15 +299,17 @@ public class CAPStatusBar extends Plugin {
         currentStatusBarColor = color;
         currentColorHex = colorHex;
 
-                // Apply only status bar background color
+        // Apply only status bar background color
         applyStatusBarBackground(activity, color);
 
-        // Determine and apply appropriate status bar appearance based on effective color brightness
+        // Determine and apply appropriate status bar appearance based on effective
+        // color brightness
         Window window = activity.getWindow();
         boolean isLightColor = isEffectiveLightColor(color);
         setLightStatusBarIcons(window, isLightColor);
 
-        Log.d(TAG, "setStatusBarColor: Applied color=" + colorHex + " (alpha=" + Color.alpha(color) + "), isLightColor=" + isLightColor);
+        Log.d(TAG, "setStatusBarColor: Applied color=" + colorHex + " (alpha=" + Color.alpha(color) + "), isLightColor="
+                + isLightColor);
     }
 
     /**
@@ -649,7 +668,8 @@ public class CAPStatusBar extends Plugin {
 
     /**
      * Calculate effective brightness considering alpha channel.
-     * For transparent colors, we assume they will be blended over a white background.
+     * For transparent colors, we assume they will be blended over a white
+     * background.
      *
      * @param color The color to analyze
      * @return true if the effective color appears light, false if dark
@@ -662,7 +682,8 @@ public class CAPStatusBar extends Plugin {
             return ColorUtils.calculateLuminance(color) > 0.5;
         }
 
-        // For transparent colors, calculate effective color when blended over white background
+        // For transparent colors, calculate effective color when blended over white
+        // background
         float alphaRatio = alpha / 255.0f;
         int r = Color.red(color);
         int g = Color.green(color);

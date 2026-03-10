@@ -38,7 +38,6 @@ No additional configuration required. The plugin works out of the box on Android
 * [`hide(...)`](#hide)
 * [`setOverlaysWebView(...)`](#setoverlayswebview)
 * [`setBackground(...)`](#setbackground)
-* [`setStatusBarColor(...)`](#setstatusbarcolor)
 * [`getSafeAreaInsets()`](#getsafeareainsets)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -101,6 +100,13 @@ setOverlaysWebView(options: StatusBarSetOverlaysWebViewOptions) => Promise<void>
 
 Set whether the status bar overlays the web view.
 
+**iOS only** - On Android this is a no-op (resolves without error).
+
+- `true`: Web content extends behind the status bar (transparent background),
+  allowing content to be visible through the status bar area on scroll.
+- `false`: Restores the status bar background to the color set by `setStyle`
+  or falls back to the default style from Capacitor config.
+
 | Param         | Type                                                                                              | Description                                            |
 | ------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | **`options`** | <code><a href="#statusbarsetoverlayswebviewoptions">StatusBarSetOverlaysWebViewOptions</a></code> | - The options to set the status bar overlays web view. |
@@ -119,21 +125,6 @@ Set the window background color.
 | Param         | Type                                                                                    | Description                                       |
 | ------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
 | **`options`** | <code><a href="#statusbarsetbackgroundoptions">StatusBarSetBackgroundOptions</a></code> | - The options to set the window background color. |
-
---------------------
-
-
-### setStatusBarColor(...)
-
-```typescript
-setStatusBarColor(options: StatusBarSetColorOptions) => Promise<void>
-```
-
-Set the status bar color only.
-
-| Param         | Type                                                                          | Description                                |
-| ------------- | ----------------------------------------------------------------------------- | ------------------------------------------ |
-| **`options`** | <code><a href="#statusbarsetcoloroptions">StatusBarSetColorOptions</a></code> | - The options to set the status bar color. |
 
 --------------------
 
@@ -198,11 +189,6 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 
 
 #### StatusBarSetBackgroundOptions
-
-<code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
-
-
-#### StatusBarSetColorOptions
 
 <code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
 

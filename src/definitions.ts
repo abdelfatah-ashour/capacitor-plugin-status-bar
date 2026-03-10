@@ -53,10 +53,6 @@ export type StatusBarSetBackgroundOptions = {
   color: StatusBarColor;
 };
 
-export type StatusBarSetColorOptions = {
-  color: StatusBarColor;
-};
-
 export type SafeAreaInsets = {
   top: number;
   bottom: number;
@@ -86,8 +82,16 @@ export interface CAPStatusBarPlugin {
   hide(options: StatusBarHideOptions): Promise<void>;
   /**
    * Set whether the status bar overlays the web view.
+   *
+   * **iOS only** - On Android this is a no-op (resolves without error).
+   *
+   * - `true`: Web content extends behind the status bar (transparent background),
+   *   allowing content to be visible through the status bar area on scroll.
+   * - `false`: Restores the status bar background to the color set by `setStyle`
+   *   or falls back to the default style from Capacitor config.
+   *
    * @param options - The options to set the status bar overlays web view.
-   * @param options.value - Whether the status bar overlays the web view.
+   * @param options.value - Whether the status bar overlays the web view (required).
    */
   setOverlaysWebView(options: StatusBarSetOverlaysWebViewOptions): Promise<void>;
   /**
@@ -96,12 +100,6 @@ export interface CAPStatusBarPlugin {
    * @param options.color - The background color in HEX format.
    */
   setBackground(options: StatusBarSetBackgroundOptions): Promise<void>;
-  /**
-   * Set the status bar color only.
-   * @param options - The options to set the status bar color.
-   * @param options.color - The status bar color in HEX format (6 or 8 digits with alpha).
-   */
-  setStatusBarColor(options: StatusBarSetColorOptions): Promise<void>;
   /**
    * Get the safe area insets.
    * Returns the insets for status bar, navigation bar, and notch areas.

@@ -7,7 +7,6 @@ import type {
   StatusBarShowOptions,
   StatusBarHideOptions,
   StatusBarSetBackgroundOptions,
-  StatusBarSetColorOptions,
   SafeAreaInsets,
 } from './definitions';
 
@@ -30,10 +29,6 @@ export class CAPStatusBarWeb extends WebPlugin implements CAPStatusBarPlugin {
 
   async setBackground(options: StatusBarSetBackgroundOptions): Promise<void> {
     console.log('setBackground', options);
-  }
-
-  async setStatusBarColor(options: StatusBarSetColorOptions): Promise<void> {
-    console.log('setStatusBarColor', options);
   }
 
   async getSafeAreaInsets(): Promise<SafeAreaInsets> {

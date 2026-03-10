@@ -168,8 +168,33 @@ import Capacitor
     }
 
     @objc public func setOverlaysWebView(value: Bool) {
-        // No-op on iOS; Capacitor uses safe areas. Exposed for API parity.
+        DispatchQueue.main.async {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first,
+                  let statusBarManager = windowScene.statusBarManager else {
+                print("CAPStatusBar: setOverlaysWebView - Unable to get window or status bar manager")
+                return
+            }
 
+            if value {
+                // Overlay mode: make the status bar background transparent so web content shows through
+                let statusBarView = window.viewWithTag(CAPStatusBar.statusBarViewTag)
+                statusBarView?.backgroundColor = .clear
+                print("CAPStatusBar: setOverlaysWebView(true) - content extends behind status bar")
+            } else {
+                // Non-overlay mode: restore the status bar background from the current style
+                if let color = self.currentBackgroundColor {
+                    self.updateStatusBarBackgroundView(in: window,
+                                                       height: statusBarManager.statusBarFrame.height,
+                                                       color: color)
+                    print("CAPStatusBar: setOverlaysWebView(false) - restored background color")
+                } else {
+                    // No style was set; apply default style based on system theme
+                    self.applyDefaultStyle()
+                    print("CAPStatusBar: setOverlaysWebView(false) - applied default style from config")
+                }
+            }
+        }
     }
 
     @objc public func setBackground(colorHex: String?) {
@@ -187,45 +212,6 @@ import Capacitor
 
             window.backgroundColor = color
             print("CAPStatusBar: setBackground - Set window background to \(colorHex)")
-        }
-    }
-
-    @objc public func setStatusBarColor(colorHex: String?) {
-        DispatchQueue.main.async {
-            guard let colorHex = colorHex, let color = self.colorFromHex(colorHex) else {
-                print("CAPStatusBar: setStatusBarColor - Invalid color or nil")
-                return
-            }
-
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let window = windowScene.windows.first,
-                  let statusBarManager = windowScene.statusBarManager else {
-                print("CAPStatusBar: setStatusBarColor - Unable to get window or status bar manager")
-                return
-            }
-
-            // Store the current background color for restoration
-            self.currentBackgroundColor = color
-
-            // Update the status bar background view
-            self.updateStatusBarBackgroundView(in: window,
-                                               height: statusBarManager.statusBarFrame.height,
-                                               color: color)
-
-            // Determine and set the appropriate status bar style based on color brightness
-            let brightness = self.getColorBrightness(color)
-            let statusBarStyle: UIStatusBarStyle = brightness > 0.5 ? .darkContent : .lightContent
-
-            if #available(iOS 13.0, *) {
-                if let viewController = window.rootViewController {
-                    viewController.overrideUserInterfaceStyle = brightness > 0.5 ? .light : .dark
-                }
-            }
-
-            // Apply status bar style
-            UIApplication.shared.statusBarStyle = statusBarStyle
-
-            print("CAPStatusBar: setStatusBarColor - Set status bar color to \(colorHex), brightness: \(brightness), style: \(statusBarStyle)")
         }
     }
 

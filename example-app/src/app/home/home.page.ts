@@ -18,7 +18,7 @@ export class HomePage {
 
   style = signal<Style>(Style.LIGHT);
   color = signal<StatusBarColor>("#800080");
-  statusBarColor = signal<StatusBarColor>("#FF5733");
+  customColor = signal<StatusBarColor>("#FF5733");
   overlaysWebView = signal(true);
   animated = signal(true);
   safeAreaInsets = signal<SafeAreaInsets>({ top: 0, bottom: 0, left: 0, right: 0 });
@@ -48,13 +48,13 @@ export class HomePage {
     this.safeAreaInsets.set(await CAPStatusBar.getSafeAreaInsets());
   }
 
-  async setStatusBarColor() {
-    await CAPStatusBar.setStatusBarColor({ color: this.statusBarColor() });
+  async applyCustomColor() {
+    await CAPStatusBar.setStyle({ style: Style.CUSTOM, color: this.customColor() });
   }
 
   async setQuickColor(color: StatusBarColor) {
-    this.statusBarColor.set(color);
-    await this.setStatusBarColor();
+    this.customColor.set(color);
+    await this.applyCustomColor();
   }
 
   navigateToChat() {

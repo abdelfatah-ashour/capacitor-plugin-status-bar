@@ -50,41 +50,41 @@
     </ion-item>
   </ion-list>
 
-  <!-- New Status Bar Color Section -->
+  <!-- Custom Color Section -->
   <ion-list>
     <ion-item-group>
       <ion-item-divider>
-        <ion-label>Status Bar Color</ion-label>
+        <ion-label>Custom Status Bar Color</ion-label>
       </ion-item-divider>
 
       <ion-item lines="none">
         <ion-label class="ion-text-wrap">
           <p style="font-size: 0.9em; color: var(--ion-color-medium); margin: 8px 0;">
-            The <strong>setStatusBarColor</strong> method sets only the status bar background color and automatically determines the appropriate text color (light/dark) based on the background brightness.
+            Uses <strong>setStyle</strong> with <code>CUSTOM</code> to set the status bar background color. Icon color (light/dark) is automatically determined based on brightness.
           </p>
         </ion-label>
       </ion-item>
 
       <ion-item>
-        <ion-label position="stacked">Status Bar Color (hex)</ion-label>
+        <ion-label position="stacked">Custom Color (hex)</ion-label>
         <div style="display: flex; align-items: center; gap: 8px;">
           <ion-input
-            [ngModel]="statusBarColor()"
-            (ngModelChange)="statusBarColor.set($event)"
+            [ngModel]="customColor()"
+            (ngModelChange)="customColor.set($event)"
             placeholder="#FF5733"
             type="text"
             style="flex: 1;">
           </ion-input>
           <div
-            [style.background-color]="statusBarColor()"
+            [style.background-color]="customColor()"
             style="width: 30px; height: 30px; border-radius: 4px; border: 1px solid var(--ion-color-medium);">
           </div>
         </div>
       </ion-item>
 
       <ion-item lines="none">
-        <ion-button expand="block" color="warning" (click)="setStatusBarColor()">
-          Set Status Bar Color
+        <ion-button expand="block" color="warning" (click)="applyCustomColor()">
+          Apply Custom Color
         </ion-button>
       </ion-item>
 

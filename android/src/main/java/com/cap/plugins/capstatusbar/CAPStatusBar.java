@@ -102,10 +102,8 @@ public class CAPStatusBar extends Plugin {
     }
 
     public void setOverlaysWebView(Activity activity, boolean overlay) {
-        Log.d(TAG, "setOverlaysWebView: overlay=" + overlay);
-        Window window = activity.getWindow();
-        WindowCompat.setDecorFitsSystemWindows(window, !overlay);
-
+        // No-op on Android. Exposed for API parity with iOS.
+        Log.d(TAG, "setOverlaysWebView: no-op on Android, overlay=" + overlay);
     }
 
     public void showStatusBar(Activity activity, boolean animated) {
@@ -274,42 +272,6 @@ public class CAPStatusBar extends Plugin {
 
         int color = parseColorOrDefault(colorHex, Color.WHITE);
         applyWindowBackground(activity, color);
-    }
-
-    /**
-     * Set the status bar color only.
-     * Updates only the status bar background color without affecting the navigation
-     * bar
-     * or changing the status bar content style.
-     *
-     * @param activity The activity to apply the status bar color to
-     * @param colorHex The hex color string (e.g., "#FFFFFF" or "#FF5733")
-     */
-    public void setStatusBarColor(Activity activity, @Nullable String colorHex) {
-        Log.d(TAG, "setStatusBarColor: colorHex=" + colorHex);
-
-        if (colorHex == null) {
-            Log.w(TAG, "setStatusBarColor: colorHex is null");
-            return;
-        }
-
-        int color = parseColorOrDefault(colorHex, Color.BLACK);
-
-        // Update stored state
-        currentStatusBarColor = color;
-        currentColorHex = colorHex;
-
-        // Apply only status bar background color
-        applyStatusBarBackground(activity, color);
-
-        // Determine and apply appropriate status bar appearance based on effective
-        // color brightness
-        Window window = activity.getWindow();
-        boolean isLightColor = isEffectiveLightColor(color);
-        setLightStatusBarIcons(window, isLightColor);
-
-        Log.d(TAG, "setStatusBarColor: Applied color=" + colorHex + " (alpha=" + Color.alpha(color) + "), isLightColor="
-                + isLightColor);
     }
 
     /**

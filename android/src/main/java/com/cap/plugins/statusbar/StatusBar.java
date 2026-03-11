@@ -400,25 +400,17 @@ public class StatusBar extends Plugin {
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        Window window = activity.getWindow();
-        if (Build.VERSION.SDK_INT >= 35) {
-            ensureStatusBarOverlay(activity, color);
-        } else {
-            removeStatusBarOverlayIfPresent(activity);
-            window.setStatusBarColor(color);
-        }
+        // Use overlay approach for all API levels since edge-to-edge mode
+        // (setDecorFitsSystemWindows=false) makes window.setStatusBarColor() ineffective
+        ensureStatusBarOverlay(activity, color);
     }
 
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
                 + Build.VERSION.SDK_INT);
-        Window window = activity.getWindow();
-        if (Build.VERSION.SDK_INT >= 35) {
-            ensureNavBarOverlay(activity, color);
-        } else {
-            removeNavBarOverlayIfPresent(activity);
-            window.setNavigationBarColor(color);
-        }
+        // Use overlay approach for all API levels since edge-to-edge mode
+        // (setDecorFitsSystemWindows=false) makes window.setNavigationBarColor() ineffective
+        ensureNavBarOverlay(activity, color);
     }
 
     private void ensureStatusBarOverlay(Activity activity, @ColorInt int color) {
@@ -537,26 +529,19 @@ public class StatusBar extends Plugin {
         Log.d(TAG, "makeStatusBarBackgroundTransparent: API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
 
-        if (Build.VERSION.SDK_INT >= 35) {
-            // API 35+ (Android 15+) - Make overlay views transparent
-            ViewGroup decorView = (ViewGroup) window.getDecorView();
-            View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-            View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+        // Make overlay views transparent (used for all API levels)
+        ViewGroup decorView = (ViewGroup) window.getDecorView();
+        View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+        View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
 
-            if (statusBarOverlay != null) {
-                statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
-            }
+        if (statusBarOverlay != null) {
+            statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
+            Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
+        }
 
-            if (navBarOverlay != null) {
-                navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: navigation bar overlay made transparent");
-            }
-        } else {
-            // API 29-34 - Make window bars transparent
-            window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-            Log.d(TAG, "makeStatusBarBackgroundTransparent: window bars made transparent");
+        if (navBarOverlay != null) {
+            navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
+            Log.d(TAG, "makeStatusBarBackgroundTransparent: navigation bar overlay made transparent");
         }
     }
 

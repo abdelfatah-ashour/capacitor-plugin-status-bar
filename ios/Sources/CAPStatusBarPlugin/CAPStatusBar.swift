@@ -7,6 +7,8 @@ import Capacitor
     private static let statusBarViewTag = 38482458
     // Store the current background color to restore when showing
     private var currentBackgroundColor: UIColor?
+    // Track whether overlays web view mode is active
+    private var isOverlayMode = false
 
     @objc public func applyDefaultStyle() {
         DispatchQueue.main.async {
@@ -60,10 +62,15 @@ import Capacitor
             // Store the background color for later restoration
             self.currentBackgroundColor = backgroundColor
 
-            // Create or update the status bar background view
-            self.updateStatusBarBackgroundView(in: window,
-                                               height: statusBarManager.statusBarFrame.height,
-                                               color: backgroundColor)
+            // Skip background color update when overlays web view is active
+            if self.isOverlayMode {
+                print("CAPStatusBar: setStyle - overlay mode active, skipping background color")
+            } else {
+                // Create or update the status bar background view
+                self.updateStatusBarBackgroundView(in: window,
+                                                   height: statusBarManager.statusBarFrame.height,
+                                                   color: backgroundColor)
+            }
 
             print("CAPStatusBar: setStyle - style=\(upperStyle), backgroundColor=\(String(describing: backgroundColor)), statusBarStyle=\(statusBarStyle)")
         }
@@ -175,6 +182,8 @@ import Capacitor
                 print("CAPStatusBar: setOverlaysWebView - Unable to get window or status bar manager")
                 return
             }
+
+            self.isOverlayMode = value
 
             if value {
                 // Overlay mode: make the status bar background transparent so web content shows through

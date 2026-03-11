@@ -11,5 +11,5 @@ project(':capacitor-haptics').projectDir = new File('../node_modules/@capacitor/
 include ':capacitor-keyboard'
 project(':capacitor-keyboard').projectDir = new File('../node_modules/@capacitor/keyboard/android')
 
-include ':cap-status-bar'
-project(':cap-status-bar').projectDir = new File('../../android')
+include ':capacitor-plugin-status-bar'
+project(':capacitor-plugin-status-bar').projectDir = new File('../../android')

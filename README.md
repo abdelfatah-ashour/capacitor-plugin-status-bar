@@ -1,11 +1,11 @@
-# cap-status-bar
+# capacitor-plugin-status-bar
 
 Capacitor status bar
 
 ## Install
 
 ```bash
-npm install cap-status-bar
+npm install capacitor-plugin-status-bar
 npx cap sync
 ```
 

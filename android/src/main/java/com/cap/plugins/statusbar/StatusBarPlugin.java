@@ -1,13 +1,13 @@
-package com.cap.plugins.capstatusbar;
+package com.cap.plugins.statusbar;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-@CapacitorPlugin(name = "CAPStatusBar")
-public class CAPStatusBarPlugin extends Plugin {
-    private final CAPStatusBar implementation = new CAPStatusBar();
+@CapacitorPlugin(name = "StatusBar")
+public class StatusBarPlugin extends Plugin {
+    private final StatusBar implementation = new StatusBar();
 
     @Override
     public void load() {

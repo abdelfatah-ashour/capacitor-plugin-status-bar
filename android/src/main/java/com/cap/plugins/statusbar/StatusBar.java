@@ -1,4 +1,4 @@
-package com.cap.plugins.capstatusbar;
+package com.cap.plugins.statusbar;
 
 import android.app.Activity;
 import android.graphics.Color;
@@ -32,8 +32,8 @@ import java.util.Objects;
  * - API 35+ (Android 15+): Fully compatible with edge-to-edge display
  * enforcement
  */
-public class CAPStatusBar extends Plugin {
-    private static final String TAG = "CAPStatusBar";
+public class StatusBar extends Plugin {
+    private static final String TAG = "StatusBar";
     private static final String STATUS_BAR_OVERLAY_TAG = "capacitor_status_bar_overlay";
     private static final String NAV_BAR_OVERLAY_TAG = "capacitor_navigation_bar_overlay";
 

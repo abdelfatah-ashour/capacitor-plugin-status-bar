@@ -5,10 +5,10 @@ import Capacitor
  * Please read the Capacitor iOS Plugin Development Guide
  * here: https://capacitorjs.com/docs/plugins/ios
  */
-@objc(CAPStatusBarPlugin)
-public class CAPStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
-    public let identifier = "CAPStatusBarPlugin"
-    public let jsName = "CAPStatusBar"
+@objc(StatusBarPlugin)
+public class StatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "StatusBarPlugin"
+    public let jsName = "StatusBar"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setStyle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),
@@ -17,7 +17,7 @@ public class CAPStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "setBackground", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getSafeAreaInsets", returnType: CAPPluginReturnPromise)
     ]
-    private let implementation = CAPStatusBar()
+    private let implementation = StatusBar()
 
     override public func load() {
         super.load()

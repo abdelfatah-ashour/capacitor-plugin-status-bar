@@ -2,7 +2,7 @@ import { WebPlugin } from '@capacitor/core';
 
 import type {
   StatusBarOptions,
-  CAPStatusBarPlugin,
+  StatusBarPlugin,
   StatusBarSetOverlaysWebViewOptions,
   StatusBarShowOptions,
   StatusBarHideOptions,
@@ -10,7 +10,7 @@ import type {
   SafeAreaInsets,
 } from './definitions';
 
-export class CAPStatusBarWeb extends WebPlugin implements CAPStatusBarPlugin {
+export class StatusBarWeb extends WebPlugin implements StatusBarPlugin {
   async setStyle(options: StatusBarOptions): Promise<void> {
     console.log('setStyle', options);
   }

@@ -2,8 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
-import { CAPStatusBar, Style, StatusBarColor, StatusBarAnimation} from "cap-status-bar";
-import {SafeAreaInsets} from "cap-status-bar";
+import { StatusBar, Style, StatusBarColor, StatusBarAnimation} from "capacitor-plugin-status-bar";
+import {SafeAreaInsets} from "capacitor-plugin-status-bar";
 import { JsonPipe } from '@angular/common';
 
 @Component({
@@ -25,31 +25,31 @@ export class HomePage {
   private router = inject(Router);
 
   async applyStyle() {
-    await CAPStatusBar.setStyle({ style: this.style(), color: this.style() === Style.CUSTOM ? this.color() : undefined });
+    await StatusBar.setStyle({ style: this.style(), color: this.style() === Style.CUSTOM ? this.color() : undefined });
   }
 
   async show() {
-    await CAPStatusBar.show({ animated: this.animated() });
+    await StatusBar.show({ animated: this.animated() });
   }
 
   async hideInFade() {
-    await CAPStatusBar.hide({ animation: StatusBarAnimation.FADE });
+    await StatusBar.hide({ animation: StatusBarAnimation.FADE });
   }
 
   async hideInSlide() {
-    await CAPStatusBar.hide({ animation: StatusBarAnimation.SLIDE });
+    await StatusBar.hide({ animation: StatusBarAnimation.SLIDE });
   }
 
   async setOverlay() {
-    await CAPStatusBar.setOverlaysWebView({ value: this.overlaysWebView() });
+    await StatusBar.setOverlaysWebView({ value: this.overlaysWebView() });
   }
 
   async getSafeAreaInsets() {
-    this.safeAreaInsets.set(await CAPStatusBar.getSafeAreaInsets());
+    this.safeAreaInsets.set(await StatusBar.getSafeAreaInsets());
   }
 
   async applyCustomColor() {
-    await CAPStatusBar.setStyle({ style: Style.CUSTOM, color: this.customColor() });
+    await StatusBar.setStyle({ style: Style.CUSTOM, color: this.customColor() });
   }
 
   async setQuickColor(color: StatusBarColor) {

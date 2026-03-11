@@ -41,7 +41,7 @@ ngOnInit(): void {
   Keyboard.setResizeMode({mode : KeyboardResize.Body});
 
   // Enable edge-to-edge mode
-  CAPStatusBar.setOverlaysWebView({value : true});
+  StatusBar.setOverlaysWebView({value : true});
 }
 ```
 

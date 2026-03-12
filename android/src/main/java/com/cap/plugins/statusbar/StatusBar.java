@@ -42,62 +42,65 @@ public class StatusBar extends Plugin {
     private int currentStatusBarColor = Color.BLACK;
     private int currentNavBarColor = Color.BLACK;
 
-    @Override
-    public void load() {
-        super.load();
-        setupEdgeToEdgeBehavior();
-    }
-
-    private void setupEdgeToEdgeBehavior() {
-        Activity activity = getActivity();
-        if (activity == null)
-            return;
-
-        Window window = activity.getWindow();
-        View decorView = window.getDecorView();
-
-        WindowCompat.setDecorFitsSystemWindows(window, false);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) { // Android 14+
-            ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, insets) -> {
-                ViewCompat.onApplyWindowInsets(v, insets);
-                return insets;
-            });
-        }
-    }
+    // Note: load() is not called since StatusBar is instantiated via new StatusBar()
+    // from StatusBarPlugin, not registered as a Capacitor plugin itself.
+    // All initialization happens via ensureEdgeToEdgeConfigured() called from StatusBarPlugin.load().
 
     /**
      * Ensures edge-to-edge is properly configured for Android 15+.
-     * This fixes the keyboard extra space issue by properly handling IME insets
-     * using the modern WindowInsets API instead of deprecated soft input modes.
+     * Sets up a unified insets listener on the decorView that handles both
+     * IME insets and overlay view sizing.
      *
      * @param activity The activity to configure
      */
     public void ensureEdgeToEdgeConfigured(Activity activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) { // Android 15 (API 35)
-            Window window = activity.getWindow();
-            View decorView = window.getDecorView();
+        Window window = activity.getWindow();
+        View decorView = window.getDecorView();
 
-            // Enable edge-to-edge mode for Android 15+
-            WindowCompat.setDecorFitsSystemWindows(window, false);
+        // Enable edge-to-edge for ALL API levels.
+        // window.setStatusBarColor() is unreliable on many devices/OEMs,
+        // so we use overlay views to control bar colors consistently.
+        WindowCompat.setDecorFitsSystemWindows(window, false);
 
-            ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, insets) -> {
-                androidx.core.graphics.Insets imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime());
-                androidx.core.graphics.Insets systemBarsInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-
-                boolean isKeyboardVisible = imeInsets.bottom > 0;
-                Log.d(TAG, "ensureEdgeToEdgeConfigured: IME visible=" + isKeyboardVisible
-                        + ", IME bottom=" + imeInsets.bottom
-                        + ", system bars bottom=" + systemBarsInsets.bottom);
-
-                ViewCompat.onApplyWindowInsets(v, insets);
-                return insets;
-            });
-
-            Log.d(TAG,
-                    "ensureEdgeToEdgeConfigured: Edge-to-edge enabled with WindowInsets API for Android 15+ (API 35+)");
-        } else {
-            Log.d(TAG, "ensureEdgeToEdgeConfigured: Android < 15, no action needed");
+        // Make native bar colors transparent so our overlays are the sole color source
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.setStatusBarContrastEnforced(false);
+            window.setNavigationBarContrastEnforced(false);
         }
+
+        // Single unified insets listener on decorView for overlay sizing
+        ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, insets) -> {
+            // Size status bar overlay
+            int top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+            View statusOverlay = ((ViewGroup) v).findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+            if (statusOverlay != null) {
+                ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
+                if (params.height != top) {
+                    params.height = top;
+                    statusOverlay.setLayoutParams(params);
+                    Log.d(TAG, "insetsListener: status bar overlay height=" + top);
+                }
+            }
+
+            // Size navigation bar overlay
+            int bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+            View navOverlay = ((ViewGroup) v).findViewWithTag(NAV_BAR_OVERLAY_TAG);
+            if (navOverlay != null) {
+                ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
+                if (params.height != bottom) {
+                    params.height = bottom;
+                    navOverlay.setLayoutParams(params);
+                    Log.d(TAG, "insetsListener: nav bar overlay height=" + bottom);
+                }
+            }
+
+            ViewCompat.onApplyWindowInsets(v, insets);
+            return insets;
+        });
+
+        Log.d(TAG, "ensureEdgeToEdgeConfigured: edge-to-edge with overlay views, API=" + Build.VERSION.SDK_INT);
     }
 
     public void setOverlaysWebView(Activity activity, boolean overlay) {
@@ -194,11 +197,6 @@ public class StatusBar extends Plugin {
     public void setStyle(Activity activity, String style, @Nullable String colorHex) {
         Log.d(TAG, "setStyle: style=" + style + ", colorHex=" + colorHex);
         Window window = activity.getWindow();
-
-        // Enable drawing of system bar backgrounds (required for color changes)
-        window.addFlags(android.view.WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
-        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
 
         // Store the current style and color for later reapplication
         currentStyle = style;
@@ -384,16 +382,14 @@ public class StatusBar extends Plugin {
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        // Use overlay approach for all API levels since edge-to-edge mode
-        // (setDecorFitsSystemWindows=false) makes window.setStatusBarColor() ineffective
+        // Use overlay views for all API levels for consistent behavior
         ensureStatusBarOverlay(activity, color);
     }
 
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
                 + Build.VERSION.SDK_INT);
-        // Use overlay approach for all API levels since edge-to-edge mode
-        // (setDecorFitsSystemWindows=false) makes window.setNavigationBarColor() ineffective
+        // Use overlay views for all API levels for consistent behavior
         ensureNavBarOverlay(activity, color);
     }
 
@@ -401,52 +397,38 @@ public class StatusBar extends Plugin {
         Log.d(TAG, "ensureStatusBarOverlay: color=#" + Integer.toHexString(color));
         ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
         View existing = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+
+        // Get current status bar height synchronously for immediate sizing
+        int initialHeight = 0;
+        WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(decorView);
+        if (rootInsets != null) {
+            initialHeight = rootInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+        }
+
         if (existing == null) {
-            Log.d(TAG, "ensureStatusBarOverlay: creating new overlay");
+            Log.d(TAG, "ensureStatusBarOverlay: creating new overlay, initialHeight=" + initialHeight);
             View overlay = new View(activity);
             overlay.setTag(STATUS_BAR_OVERLAY_TAG);
             overlay.setBackgroundColor(color);
 
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    0);
-            lp.topMargin = 0;
+                    initialHeight);
             overlay.setLayoutParams(lp);
 
-            // Add to the top of the decor view
             decorView.addView(overlay);
-
-            // Listen on decorView for reliable insets dispatch across all API levels,
-            // then use WindowInsetsCompat.Type.statusBars() for accurate status-bar-only height
-            ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, windowInsets) -> {
-                int top = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-                View statusOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-                if (statusOverlay != null) {
-                    ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
-                    if (params.height != top) {
-                        params.height = top;
-                        statusOverlay.setLayoutParams(params);
-                    }
-                }
-
-                int bottom = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
-                View navOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-                if (navOverlay != null) {
-                    ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
-                    if (params.height != bottom) {
-                        params.height = bottom;
-                        navOverlay.setLayoutParams(params);
-                    }
-                }
-
-                ViewCompat.onApplyWindowInsets(v, windowInsets);
-                return windowInsets;
-            });
+            // Sizing updates are handled by the unified listener in ensureEdgeToEdgeConfigured
             decorView.requestApplyInsets();
         } else {
             Log.d(TAG, "ensureStatusBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            decorView.requestApplyInsets();
+            // Update height if it was 0 (listener hadn't fired yet)
+            ViewGroup.LayoutParams params = existing.getLayoutParams();
+            if (params.height == 0 && initialHeight > 0) {
+                params.height = initialHeight;
+                existing.setLayoutParams(params);
+                Log.d(TAG, "ensureStatusBarOverlay: fixed height to " + initialHeight);
+            }
         }
     }
 
@@ -464,53 +446,39 @@ public class StatusBar extends Plugin {
         Log.d(TAG, "ensureNavBarOverlay: color=#" + Integer.toHexString(color));
         ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
         View existing = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+
+        // Get current nav bar height synchronously for immediate sizing
+        int initialHeight = 0;
+        WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(decorView);
+        if (rootInsets != null) {
+            initialHeight = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+        }
+
         if (existing == null) {
-            Log.d(TAG, "ensureNavBarOverlay: creating new overlay");
+            Log.d(TAG, "ensureNavBarOverlay: creating new overlay, initialHeight=" + initialHeight);
             View overlay = new View(activity);
             overlay.setTag(NAV_BAR_OVERLAY_TAG);
             overlay.setBackgroundColor(color);
 
             FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    0);
+                    initialHeight);
             lp.gravity = Gravity.BOTTOM;
             overlay.setLayoutParams(lp);
 
             decorView.addView(overlay);
-
-            // Insets sizing is handled by the shared decorView listener in ensureStatusBarOverlay.
-            // If status bar overlay was not created yet, set up the listener here.
-            if (decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG) == null) {
-                ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, windowInsets) -> {
-                    int top = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
-                    View statusOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-                    if (statusOverlay != null) {
-                        ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
-                        if (params.height != top) {
-                            params.height = top;
-                            statusOverlay.setLayoutParams(params);
-                        }
-                    }
-
-                    int bottom = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
-                    View navOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-                    if (navOverlay != null) {
-                        ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
-                        if (params.height != bottom) {
-                            params.height = bottom;
-                            navOverlay.setLayoutParams(params);
-                        }
-                    }
-
-                    ViewCompat.onApplyWindowInsets(v, windowInsets);
-                    return windowInsets;
-                });
-            }
+            // Sizing updates are handled by the unified listener in ensureEdgeToEdgeConfigured
             decorView.requestApplyInsets();
         } else {
             Log.d(TAG, "ensureNavBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            decorView.requestApplyInsets();
+            // Update height if it was 0 (listener hadn't fired yet)
+            ViewGroup.LayoutParams params = existing.getLayoutParams();
+            if (params.height == 0 && initialHeight > 0) {
+                params.height = initialHeight;
+                existing.setLayoutParams(params);
+                Log.d(TAG, "ensureNavBarOverlay: fixed height to " + initialHeight);
+            }
         }
     }
 
@@ -536,18 +504,15 @@ public class StatusBar extends Plugin {
      */
     private void makeStatusBarBackgroundTransparent(Activity activity) {
         Log.d(TAG, "makeStatusBarBackgroundTransparent: API=" + Build.VERSION.SDK_INT);
-        Window window = activity.getWindow();
+        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
 
-        // Make overlay views transparent (used for all API levels)
-        ViewGroup decorView = (ViewGroup) window.getDecorView();
         View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-        View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-
         if (statusBarOverlay != null) {
             statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
             Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
         }
 
+        View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
         if (navBarOverlay != null) {
             navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
             Log.d(TAG, "makeStatusBarBackgroundTransparent: navigation bar overlay made transparent");

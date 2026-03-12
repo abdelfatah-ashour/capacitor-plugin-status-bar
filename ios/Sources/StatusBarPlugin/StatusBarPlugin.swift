@@ -8,7 +8,7 @@ import Capacitor
 @objc(StatusBarPlugin)
 public class StatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "StatusBarPlugin"
-    public let jsName = "StatusBar"
+    public let jsName = "CapacitorStatusBar"
     public let pluginMethods: [CAPPluginMethod] = [
         CAPPluginMethod(name: "setStyle", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "show", returnType: CAPPluginReturnPromise),

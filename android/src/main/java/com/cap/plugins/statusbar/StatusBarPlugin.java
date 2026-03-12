@@ -5,7 +5,7 @@ import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
-@CapacitorPlugin(name = "StatusBar")
+@CapacitorPlugin(name = "CapacitorStatusBar")
 public class StatusBarPlugin extends Plugin {
     private final StatusBar implementation = new StatusBar();
 

@@ -230,13 +230,19 @@ import Capacitor
 
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let window = windowScene.windows.first {
+                // Use statusBarManager for accurate status bar height
+                let statusBarHeight = windowScene.statusBarManager?.statusBarFrame.height ?? 0
                 let safeAreaInsets = window.safeAreaInsets
-                insets["top"] = safeAreaInsets.top
+
+                // top: status bar height specifically
+                insets["top"] = statusBarHeight
+                // bottom: home indicator / navigation bar area
                 insets["bottom"] = safeAreaInsets.bottom
+                // left/right: safe area for landscape / display cutouts
                 insets["left"] = safeAreaInsets.left
                 insets["right"] = safeAreaInsets.right
 
-                print("StatusBar: getSafeAreaInsets - top=\(safeAreaInsets.top), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
+                print("StatusBar: getSafeAreaInsets - top=\(statusBarHeight), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
             } else {
                 print("StatusBar: getSafeAreaInsets - Unable to get window, returning zero insets")
             }

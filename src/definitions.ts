@@ -103,7 +103,7 @@ export interface StatusBarPlugin {
   /**
    * Get the safe area insets.
    * Returns the insets for status bar, navigation bar, and notch areas.
-   * Values are in pixels on Android and points on iOS.
+   * Values are in CSS pixels (dp) on all platforms.
    */
   getSafeAreaInsets(): Promise<SafeAreaInsets>;
 }

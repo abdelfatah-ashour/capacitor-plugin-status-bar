@@ -21,7 +21,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.getcapacitor.Plugin;
 
-import java.util.Objects;
 
 /**
  * Android Status Bar utilities with Android 10-15+ (API 29-35+) support.
@@ -279,60 +278,45 @@ public class StatusBar extends Plugin {
      * Returns the insets for status bar, navigation bar, and notch areas.
      *
      * @param activity The activity to get the insets from
-     * @return A map containing top, bottom, left, and right inset values in pixels
+     * @return A map containing top, bottom, left, and right inset values in dp (density-independent pixels)
      */
     public java.util.Map<String, Integer> getSafeAreaInsets(Activity activity) {
         Log.d(TAG, "getSafeAreaInsets");
         java.util.Map<String, Integer> insets = new java.util.HashMap<>();
+        float density = activity.getResources().getDisplayMetrics().density;
 
-        Window window = activity.getWindow();
-        View decorView = window.getDecorView();
+        View decorView = activity.getWindow().getDecorView();
+        WindowInsetsCompat windowInsets = ViewCompat.getRootWindowInsets(decorView);
 
-        WindowInsets windowInsets = decorView.getRootWindowInsets();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+ (Android 11+) - Use WindowInsets API
-            if (windowInsets != null) {
-                android.graphics.Insets systemBarsInsets = windowInsets.getInsets(WindowInsets.Type.systemBars());
-                android.graphics.Insets displayCutoutInsets = windowInsets.getInsets(WindowInsets.Type.displayCutout());
+        if (windowInsets != null) {
+            // Use WindowInsetsCompat for accurate, type-specific insets across all API levels
+            androidx.core.graphics.Insets statusBars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+            androidx.core.graphics.Insets navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            androidx.core.graphics.Insets displayCutout = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout());
 
-                // Combine system bars and display cutout insets (use maximum of both)
-                insets.put("top", Math.max(systemBarsInsets.top, displayCutoutInsets.top));
-                insets.put("bottom", Math.max(systemBarsInsets.bottom, displayCutoutInsets.bottom));
-                insets.put("left", Math.max(systemBarsInsets.left, displayCutoutInsets.left));
-                insets.put("right", Math.max(systemBarsInsets.right, displayCutoutInsets.right));
+            int topPx = Math.max(statusBars.top, displayCutout.top);
+            int bottomPx = Math.max(navBars.bottom, displayCutout.bottom);
+            int leftPx = Math.max(navBars.left, displayCutout.left);
+            int rightPx = Math.max(navBars.right, displayCutout.right);
 
-                Log.d(TAG, "getSafeAreaInsets (API 30+): top=" + insets.get("top")
-                        + ", bottom=" + insets.get("bottom")
-                        + ", left=" + insets.get("left")
-                        + ", right=" + insets.get("right"));
-            } else {
-                // Fallback to zero insets
-                insets.put("top", 0);
-                insets.put("bottom", 0);
-                insets.put("left", 0);
-                insets.put("right", 0);
-                Log.w(TAG, "getSafeAreaInsets: windowInsets is null");
-            }
+            // Convert physical pixels to dp (CSS pixels) for the WebView layer
+            insets.put("top", Math.round(topPx / density));
+            insets.put("bottom", Math.round(bottomPx / density));
+            insets.put("left", Math.round(leftPx / density));
+            insets.put("right", Math.round(rightPx / density));
+
+            Log.d(TAG, "getSafeAreaInsets: topPx=" + topPx + " bottomPx=" + bottomPx
+                    + " density=" + density
+                    + " -> top=" + insets.get("top") + "dp"
+                    + " bottom=" + insets.get("bottom") + "dp"
+                    + " left=" + insets.get("left") + "dp"
+                    + " right=" + insets.get("right") + "dp");
         } else {
-            // API 29 (Android 10) - Use deprecated system window insets
-            if (windowInsets != null) {
-                insets.put("top", windowInsets.getSystemWindowInsetTop());
-                insets.put("bottom", windowInsets.getSystemWindowInsetBottom());
-                insets.put("left", windowInsets.getSystemWindowInsetLeft());
-                insets.put("right", windowInsets.getSystemWindowInsetRight());
-
-                Log.d(TAG, "getSafeAreaInsets (API 29): top=" + insets.get("top")
-                        + ", bottom=" + insets.get("bottom")
-                        + ", left=" + insets.get("left")
-                        + ", right=" + insets.get("right"));
-            } else {
-                // Fallback to zero insets
-                insets.put("top", 0);
-                insets.put("bottom", 0);
-                insets.put("left", 0);
-                insets.put("right", 0);
-                Log.w(TAG, "getSafeAreaInsets: windowInsets is null");
-            }
+            insets.put("top", 0);
+            insets.put("bottom", 0);
+            insets.put("left", 0);
+            insets.put("right", 0);
+            Log.w(TAG, "getSafeAreaInsets: windowInsets is null");
         }
 
         return insets;
@@ -432,26 +416,37 @@ public class StatusBar extends Plugin {
             // Add to the top of the decor view
             decorView.addView(overlay);
 
-            // Apply correct height from insets
-            ViewCompat.setOnApplyWindowInsetsListener(overlay, (v, windowInsets) -> {
-                int top;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    top = Objects.requireNonNull(windowInsets.toWindowInsets())
-                            .getInsets(WindowInsets.Type.statusBars()).top;
-                } else {
-                    top = Objects.requireNonNull(windowInsets.toWindowInsets()).getSystemWindowInsetTop();
+            // Listen on decorView for reliable insets dispatch across all API levels,
+            // then use WindowInsetsCompat.Type.statusBars() for accurate status-bar-only height
+            ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, windowInsets) -> {
+                int top = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+                View statusOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+                if (statusOverlay != null) {
+                    ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
+                    if (params.height != top) {
+                        params.height = top;
+                        statusOverlay.setLayoutParams(params);
+                    }
                 }
-                ViewGroup.LayoutParams params = v.getLayoutParams();
-                params.height = top;
-                v.setLayoutParams(params);
-                // Don't set color here - it's set before listener and should not be overridden
+
+                int bottom = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                View navOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+                if (navOverlay != null) {
+                    ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
+                    if (params.height != bottom) {
+                        params.height = bottom;
+                        navOverlay.setLayoutParams(params);
+                    }
+                }
+
+                ViewCompat.onApplyWindowInsets(v, windowInsets);
                 return windowInsets;
             });
-            overlay.requestApplyInsets();
+            decorView.requestApplyInsets();
         } else {
             Log.d(TAG, "ensureStatusBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            existing.requestApplyInsets();
+            decorView.requestApplyInsets();
         }
     }
 
@@ -483,25 +478,39 @@ public class StatusBar extends Plugin {
 
             decorView.addView(overlay);
 
-            ViewCompat.setOnApplyWindowInsetsListener(overlay, (v, windowInsets) -> {
-                int bottom;
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                    bottom = Objects.requireNonNull(windowInsets.toWindowInsets())
-                            .getInsets(WindowInsets.Type.navigationBars()).bottom;
-                } else {
-                    bottom = Objects.requireNonNull(windowInsets.toWindowInsets()).getSystemWindowInsetBottom();
-                }
-                ViewGroup.LayoutParams params = v.getLayoutParams();
-                params.height = bottom;
-                v.setLayoutParams(params);
-                // Don't set color here - it's set before listener and should not be overridden
-                return windowInsets;
-            });
-            overlay.requestApplyInsets();
+            // Insets sizing is handled by the shared decorView listener in ensureStatusBarOverlay.
+            // If status bar overlay was not created yet, set up the listener here.
+            if (decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG) == null) {
+                ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, windowInsets) -> {
+                    int top = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+                    View statusOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+                    if (statusOverlay != null) {
+                        ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
+                        if (params.height != top) {
+                            params.height = top;
+                            statusOverlay.setLayoutParams(params);
+                        }
+                    }
+
+                    int bottom = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                    View navOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+                    if (navOverlay != null) {
+                        ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
+                        if (params.height != bottom) {
+                            params.height = bottom;
+                            navOverlay.setLayoutParams(params);
+                        }
+                    }
+
+                    ViewCompat.onApplyWindowInsets(v, windowInsets);
+                    return windowInsets;
+                });
+            }
+            decorView.requestApplyInsets();
         } else {
             Log.d(TAG, "ensureNavBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            existing.requestApplyInsets();
+            decorView.requestApplyInsets();
         }
     }
 

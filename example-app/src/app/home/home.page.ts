@@ -25,7 +25,11 @@ export class HomePage {
   private router = inject(Router);
 
   async applyStyle() {
-    await StatusBar.setStyle({ style: this.style(), color: this.style() === Style.CUSTOM ? this.color() : undefined });
+    if(this.style() === Style.CUSTOM) {
+      await StatusBar.setStyle({ style: Style.CUSTOM, color: this.color() });
+    } else {
+      await StatusBar.setStyle({ style: this.style() });
+    }
   }
 
   async show() {

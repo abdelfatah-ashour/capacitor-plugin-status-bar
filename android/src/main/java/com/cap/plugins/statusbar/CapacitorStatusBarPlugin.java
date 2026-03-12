@@ -6,8 +6,8 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 
 @CapacitorPlugin(name = "CapacitorStatusBar")
-public class StatusBarPlugin extends Plugin {
-    private final StatusBar implementation = new StatusBar();
+public class CapacitorStatusBarPlugin extends Plugin {
+    private final CapacitorStatusBar implementation = new CapacitorStatusBar();
 
     @Override
     public void load() {

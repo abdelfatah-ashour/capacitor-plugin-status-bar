@@ -31,8 +31,8 @@ import com.getcapacitor.Plugin;
  * - API 35+ (Android 15+): Fully compatible with edge-to-edge display
  * enforcement
  */
-public class StatusBar extends Plugin {
-    private static final String TAG = "StatusBar";
+public class CapacitorStatusBar extends Plugin {
+    private static final String TAG = "CapacitorStatusBar";
     private static final String STATUS_BAR_OVERLAY_TAG = "capacitor_status_bar_overlay";
     private static final String NAV_BAR_OVERLAY_TAG = "capacitor_navigation_bar_overlay";
 
@@ -42,9 +42,9 @@ public class StatusBar extends Plugin {
     private int currentStatusBarColor = Color.BLACK;
     private int currentNavBarColor = Color.BLACK;
 
-    // Note: load() is not called since StatusBar is instantiated via new StatusBar()
-    // from StatusBarPlugin, not registered as a Capacitor plugin itself.
-    // All initialization happens via ensureEdgeToEdgeConfigured() called from StatusBarPlugin.load().
+    // Note: load() is not called since CapacitorStatusBar is instantiated via new CapacitorStatusBar()
+    // from CapacitorStatusBarPlugin, not registered as a Capacitor plugin itself.
+    // All initialization happens via ensureEdgeToEdgeConfigured() called from CapacitorStatusBarPlugin.load().
 
     /**
      * Ensures edge-to-edge is properly configured for Android 15+.

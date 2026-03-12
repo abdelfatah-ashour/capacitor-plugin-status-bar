@@ -2,7 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
-import { StatusBar, Style, StatusBarColor, StatusBarAnimation} from "capacitor-plugin-status-bar";
+import { CapacitorStatusBar, Style, StatusBarColor, StatusBarAnimation} from "capacitor-plugin-status-bar";
 import {SafeAreaInsets} from "capacitor-plugin-status-bar";
 import { JsonPipe } from '@angular/common';
 
@@ -26,34 +26,34 @@ export class HomePage {
 
   async applyStyle() {
     if(this.style() === Style.CUSTOM) {
-      await StatusBar.setStyle({ style: Style.CUSTOM, color: this.color() });
+      await CapacitorStatusBar.setStyle({ style: Style.CUSTOM, color: this.color() });
     } else {
-      await StatusBar.setStyle({ style: this.style() });
+      await CapacitorStatusBar.setStyle({ style: this.style() });
     }
   }
 
   async show() {
-    await StatusBar.show({ animated: this.animated() });
+    await CapacitorStatusBar.show({ animated: this.animated() });
   }
 
   async hideInFade() {
-    await StatusBar.hide({ animation: StatusBarAnimation.FADE });
+    await CapacitorStatusBar.hide({ animation: StatusBarAnimation.FADE });
   }
 
   async hideInSlide() {
-    await StatusBar.hide({ animation: StatusBarAnimation.SLIDE });
+    await CapacitorStatusBar.hide({ animation: StatusBarAnimation.SLIDE });
   }
 
   async setOverlay() {
-    await StatusBar.setOverlaysWebView({ value: this.overlaysWebView() });
+    await CapacitorStatusBar.setOverlaysWebView({ value: this.overlaysWebView() });
   }
 
   async getSafeAreaInsets() {
-    this.safeAreaInsets.set(await StatusBar.getSafeAreaInsets());
+    this.safeAreaInsets.set(await CapacitorStatusBar.getSafeAreaInsets());
   }
 
   async applyCustomColor() {
-    await StatusBar.setStyle({ style: Style.CUSTOM, color: this.customColor() });
+    await CapacitorStatusBar.setStyle({ style: Style.CUSTOM, color: this.customColor() });
   }
 
   async setQuickColor(color: StatusBarColor) {

@@ -1,10 +1,10 @@
 import { registerPlugin } from '@capacitor/core';
 
-import type { StatusBarPlugin } from './definitions';
+import type { CapacitorStatusBarPlugin } from './definitions';
 
-const StatusBar = registerPlugin<StatusBarPlugin>('CapacitorStatusBar', {
-  web: () => import('./web').then((m) => new m.StatusBarWeb()),
+const CapacitorStatusBar = registerPlugin<CapacitorStatusBarPlugin>('CapacitorStatusBar', {
+  web: () => import('./web').then((m) => new m.CapacitorStatusBarWeb()),
 });
 
 export * from './definitions';
-export { StatusBar };
+export { CapacitorStatusBar };

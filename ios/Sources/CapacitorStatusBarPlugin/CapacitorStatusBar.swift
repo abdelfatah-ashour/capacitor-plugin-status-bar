@@ -2,7 +2,7 @@ import Foundation
 import UIKit
 import Capacitor
 
-@objc public class StatusBar: NSObject {
+@objc public class CapacitorStatusBar: NSObject {
     // Tag to identify the status bar background view
     private static let statusBarViewTag = 38482458
     // Store the current background color to restore when showing
@@ -14,7 +14,7 @@ import Capacitor
         DispatchQueue.main.async {
             let isDarkMode = self.isSystemInDarkMode()
             let style = isDarkMode ? "DARK" : "LIGHT"
-            print("StatusBar: Applying default style based on system theme - isDarkMode=\(isDarkMode), style=\(style)")
+            print("CapacitorStatusBar: Applying default style based on system theme - isDarkMode=\(isDarkMode), style=\(style)")
             self.setStyle(style: style, colorHex: nil)
         }
     }
@@ -64,7 +64,7 @@ import Capacitor
 
             // Skip background color update when overlays web view is active
             if self.isOverlayMode {
-                print("StatusBar: setStyle - overlay mode active, skipping background color")
+                print("CapacitorStatusBar: setStyle - overlay mode active, skipping background color")
             } else {
                 // Create or update the status bar background view
                 self.updateStatusBarBackgroundView(in: window,
@@ -72,7 +72,7 @@ import Capacitor
                                                    color: backgroundColor)
             }
 
-            print("StatusBar: setStyle - style=\(upperStyle), backgroundColor=\(String(describing: backgroundColor)), statusBarStyle=\(statusBarStyle)")
+            print("CapacitorStatusBar: setStyle - style=\(upperStyle), backgroundColor=\(String(describing: backgroundColor)), statusBarStyle=\(statusBarStyle)")
         }
     }
 
@@ -85,7 +85,7 @@ import Capacitor
             // Log current status bar state via status bar manager
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let statusBarManager = windowScene.statusBarManager {
-                print("StatusBar: show() - Current hidden state: \(statusBarManager.isStatusBarHidden)")
+                print("CapacitorStatusBar: show() - Current hidden state: \(statusBarManager.isStatusBarHidden)")
             }
 
             // Set visibility using the application-level API
@@ -104,16 +104,16 @@ import Capacitor
             // Log current status bar state via status bar manager
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let statusBarManager = windowScene.statusBarManager {
-                print("StatusBar: hide() - animation=\(animationType), Current hidden state: \(statusBarManager.isStatusBarHidden)")
+                print("CapacitorStatusBar: hide() - animation=\(animationType), Current hidden state: \(statusBarManager.isStatusBarHidden)")
             }
 
             if animationType == "fade" {
                 // Fade mode: Make background transparent without removing status bar
-                print("StatusBar: hide() - fade mode: making background transparent")
+                print("CapacitorStatusBar: hide() - fade mode: making background transparent")
                 self.makeStatusBarBackgroundTransparent()
             } else if animationType == "slide" {
                 // Slide mode: Hide the status bar completely (current behavior)
-                print("StatusBar: hide() - slide mode: hiding bars completely")
+                print("CapacitorStatusBar: hide() - slide mode: hiding bars completely")
                 // Note: Status bar visibility is controlled through view controllers in modern iOS.
                 // This plugin requires UIViewControllerBasedStatusBarAppearance to be set to NO
                 // in the app's Info.plist for programmatic show/hide to work.
@@ -121,7 +121,7 @@ import Capacitor
                 // Also make the background view transparent when hiding
                 self.makeStatusBarBackgroundTransparent()
             } else {
-                print("StatusBar: hide() - unknown animation type '\(animationType)', defaulting to slide")
+                print("CapacitorStatusBar: hide() - unknown animation type '\(animationType)', defaulting to slide")
                 self.setStatusBarVisibility(hidden: true, animated: true)
                 self.makeStatusBarBackgroundTransparent()
             }
@@ -147,7 +147,7 @@ import Capacitor
     ///   - color: The background color (nil to remove the view)
     private func updateStatusBarBackgroundView(in window: UIWindow, height: CGFloat, color: UIColor?) {
         // Find existing status bar view
-        let existingView = window.viewWithTag(StatusBar.statusBarViewTag)
+        let existingView = window.viewWithTag(CapacitorStatusBar.statusBarViewTag)
 
         if let color = color {
             // Create or update the status bar background view
@@ -157,7 +157,7 @@ import Capacitor
                 statusBarView = existing
             } else {
                 statusBarView = UIView(frame: CGRect(x: 0, y: 0, width: window.bounds.width, height: height))
-                statusBarView.tag = StatusBar.statusBarViewTag
+                statusBarView.tag = CapacitorStatusBar.statusBarViewTag
                 statusBarView.autoresizingMask = [.flexibleWidth]
                 window.addSubview(statusBarView)
             }
@@ -179,7 +179,7 @@ import Capacitor
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first,
                   let statusBarManager = windowScene.statusBarManager else {
-                print("StatusBar: setOverlaysWebView - Unable to get window or status bar manager")
+                print("CapacitorStatusBar: setOverlaysWebView - Unable to get window or status bar manager")
                 return
             }
 
@@ -187,20 +187,20 @@ import Capacitor
 
             if value {
                 // Overlay mode: make the status bar background transparent so web content shows through
-                let statusBarView = window.viewWithTag(StatusBar.statusBarViewTag)
+                let statusBarView = window.viewWithTag(CapacitorStatusBar.statusBarViewTag)
                 statusBarView?.backgroundColor = .clear
-                print("StatusBar: setOverlaysWebView(true) - content extends behind status bar")
+                print("CapacitorStatusBar: setOverlaysWebView(true) - content extends behind status bar")
             } else {
                 // Non-overlay mode: restore the status bar background from the current style
                 if let color = self.currentBackgroundColor {
                     self.updateStatusBarBackgroundView(in: window,
                                                        height: statusBarManager.statusBarFrame.height,
                                                        color: color)
-                    print("StatusBar: setOverlaysWebView(false) - restored background color")
+                    print("CapacitorStatusBar: setOverlaysWebView(false) - restored background color")
                 } else {
                     // No style was set; apply default style based on system theme
                     self.applyDefaultStyle()
-                    print("StatusBar: setOverlaysWebView(false) - applied default style from config")
+                    print("CapacitorStatusBar: setOverlaysWebView(false) - applied default style from config")
                 }
             }
         }
@@ -209,18 +209,18 @@ import Capacitor
     @objc public func setBackground(colorHex: String?) {
         DispatchQueue.main.async {
             guard let colorHex = colorHex, let color = self.colorFromHex(colorHex) else {
-                print("StatusBar: setBackground - Invalid color or nil")
+                print("CapacitorStatusBar: setBackground - Invalid color or nil")
                 return
             }
 
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first else {
-                print("StatusBar: setBackground - Unable to get window")
+                print("CapacitorStatusBar: setBackground - Unable to get window")
                 return
             }
 
             window.backgroundColor = color
-            print("StatusBar: setBackground - Set window background to \(colorHex)")
+            print("CapacitorStatusBar: setBackground - Set window background to \(colorHex)")
         }
     }
 
@@ -242,9 +242,9 @@ import Capacitor
                 insets["left"] = safeAreaInsets.left
                 insets["right"] = safeAreaInsets.right
 
-                print("StatusBar: getSafeAreaInsets - top=\(statusBarHeight), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
+                print("CapacitorStatusBar: getSafeAreaInsets - top=\(statusBarHeight), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
             } else {
-                print("StatusBar: getSafeAreaInsets - Unable to get window, returning zero insets")
+                print("CapacitorStatusBar: getSafeAreaInsets - Unable to get window, returning zero insets")
             }
 
             completion(insets)
@@ -255,12 +255,12 @@ import Capacitor
     private func makeStatusBarBackgroundTransparent() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first,
-              let statusBarView = window.viewWithTag(StatusBar.statusBarViewTag) else {
+              let statusBarView = window.viewWithTag(CapacitorStatusBar.statusBarViewTag) else {
             return
         }
 
         statusBarView.backgroundColor = .clear
-        print("StatusBar: Made background transparent")
+        print("CapacitorStatusBar: Made background transparent")
     }
 
     /// Restores the status bar background view to its original color
@@ -276,7 +276,7 @@ import Capacitor
             self.updateStatusBarBackgroundView(in: window,
                                                height: statusBarManager.statusBarFrame.height,
                                                color: color)
-            print("StatusBar: Restored background color: \(color)")
+            print("CapacitorStatusBar: Restored background color: \(color)")
         }
     }
 

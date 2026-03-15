@@ -53,6 +53,19 @@ export type StatusBarSetBackgroundOptions = {
   color: StatusBarColor;
 };
 
+export type NavigationBarShowOptions = {
+  animated: boolean;
+};
+
+export type NavigationBarHideOptions = {
+  /**
+   * The animation type for hiding the navigation bar.
+   * - 'fade': Makes the background transparent without removing the navigation bar.
+   * - 'slide': Hides the navigation bar completely (default behavior).
+   */
+  animation: StatusBarAnimation;
+};
+
 export type SafeAreaInsets = {
   top: number;
   bottom: number;
@@ -100,6 +113,18 @@ export interface CapacitorStatusBarPlugin {
    * @param options.color - The background color in HEX format.
    */
   setBackground(options: StatusBarSetBackgroundOptions): Promise<void>;
+  /**
+   * Show the navigation bar.
+   * @param options - The options to show the navigation bar.
+   * @param options.animated - Whether to animate the navigation bar.
+   */
+  showNavigationBar(options: NavigationBarShowOptions): Promise<void>;
+  /**
+   * Hide the navigation bar.
+   * @param options - The options to hide the navigation bar.
+   * @param options.animation - The animation type: 'fade' makes background transparent, 'slide' hides bar completely.
+   */
+  hideNavigationBar(options: NavigationBarHideOptions): Promise<void>;
   /**
    * Get the safe area insets.
    * Returns the insets for status bar, navigation bar, and notch areas.

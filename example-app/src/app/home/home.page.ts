@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
@@ -12,9 +12,8 @@ import { JsonPipe } from '@angular/common';
   styleUrls: ['home.page.scss'],
   imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider, FormsModule, JsonPipe],
 })
-export class HomePage {
-  // Expose enum to template
-  readonly Style = Style;
+export class HomePage implements OnInit {
+  private router = inject(Router);
 
   style = signal<Style>(Style.LIGHT);
   color = signal<StatusBarColor>("#800080");
@@ -22,7 +21,24 @@ export class HomePage {
   overlaysWebView = signal(true);
   animated = signal(true);
   safeAreaInsets = signal<SafeAreaInsets>({ top: 0, bottom: 0, left: 0, right: 0 });
-  private router = inject(Router);
+
+  // Expose enum to template
+  readonly Style = Style;
+
+  ngOnInit(): void {
+    CapacitorStatusBar.setOverlaysWebView({value : true});
+    this.setInsets();
+  }
+
+  private async setInsets() {
+    this.safeAreaInsets.set(await CapacitorStatusBar.getSafeAreaInsets());
+    const insets = await CapacitorStatusBar.getSafeAreaInsets()
+    console.log("🚀 ~ HomePage ~ setInsets ~ insets:", insets)
+    document.documentElement.style.setProperty('--safe-area-inset-top', `${insets.top}px`);
+    document.documentElement.style.setProperty('--safe-area-inset-bottom', `${insets.bottom}px`);
+    document.documentElement.style.setProperty('--safe-area-inset-left', `${insets.left}px`);
+    document.documentElement.style.setProperty('--safe-area-inset-right', `${insets.right}px`);
+  }
 
   async applyStyle() {
     if(this.style() === Style.CUSTOM) {
@@ -46,6 +62,18 @@ export class HomePage {
 
   async setOverlay() {
     await CapacitorStatusBar.setOverlaysWebView({ value: this.overlaysWebView() });
+  }
+
+  async showNavigationBar() {
+    await CapacitorStatusBar.showNavigationBar({ animated: this.animated() });
+  }
+
+  async hideNavigationBarInFade() {
+    await CapacitorStatusBar.hideNavigationBar({ animation: StatusBarAnimation.FADE });
+  }
+
+  async hideNavigationBarInSlide() {
+    await CapacitorStatusBar.hideNavigationBar({ animation: StatusBarAnimation.SLIDE });
   }
 
   async getSafeAreaInsets() {

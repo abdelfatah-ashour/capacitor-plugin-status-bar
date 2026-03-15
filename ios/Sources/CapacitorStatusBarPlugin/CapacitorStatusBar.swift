@@ -251,6 +251,76 @@ import Capacitor
         }
     }
 
+    // MARK: - Navigation Bar (Home Indicator)
+
+    /// Shared flag read by the swizzled `prefersHomeIndicatorAutoHidden` override.
+    static var homeIndicatorHidden = false
+
+    @objc public func showNavigationBar(animated: Bool) {
+        DispatchQueue.main.async {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first,
+                  let rootVC = window.rootViewController else {
+                print("CapacitorStatusBar: showNavigationBar - Unable to get root view controller")
+                return
+            }
+
+            CapacitorStatusBar.homeIndicatorHidden = false
+            CapacitorStatusBar.swizzleHomeIndicatorIfNeeded()
+            rootVC.setNeedsUpdateOfHomeIndicatorAutoHidden()
+
+            print("CapacitorStatusBar: showNavigationBar - animated=\(animated)")
+        }
+    }
+
+    @objc public func hideNavigationBar(animation: String) {
+        DispatchQueue.main.async {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first,
+                  let rootVC = window.rootViewController else {
+                print("CapacitorStatusBar: hideNavigationBar - Unable to get root view controller")
+                return
+            }
+
+            let animationType = animation.lowercased()
+            CapacitorStatusBar.homeIndicatorHidden = true
+            CapacitorStatusBar.swizzleHomeIndicatorIfNeeded()
+            rootVC.setNeedsUpdateOfHomeIndicatorAutoHidden()
+
+            print("CapacitorStatusBar: hideNavigationBar - animation=\(animationType)")
+        }
+    }
+
+    // MARK: - Home Indicator Swizzling
+
+    private static var hasSwizzled = false
+
+    /// Swizzle `prefersHomeIndicatorAutoHidden` on the root view controller so we
+    /// can control the home indicator visibility from the plugin.
+    static func swizzleHomeIndicatorIfNeeded() {
+        guard !hasSwizzled else { return }
+        hasSwizzled = true
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else {
+            return
+        }
+
+        let vcClass: AnyClass = type(of: rootVC)
+        let originalSelector = #selector(getter: UIViewController.prefersHomeIndicatorAutoHidden)
+        let swizzledSelector = #selector(UIViewController.capsb_prefersHomeIndicatorAutoHidden)
+
+        guard let originalMethod = class_getInstanceMethod(vcClass, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIViewController.self, swizzledSelector) else {
+            print("CapacitorStatusBar: Failed to swizzle prefersHomeIndicatorAutoHidden")
+            return
+        }
+
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+        print("CapacitorStatusBar: Swizzled prefersHomeIndicatorAutoHidden on \(vcClass)")
+    }
+
     /// Makes the status bar background view transparent
     private func makeStatusBarBackgroundTransparent() {
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -327,5 +397,13 @@ import Capacitor
             return false
         }
         return window.traitCollection.userInterfaceStyle == .dark
+    }
+}
+
+// MARK: - UIViewController extension for home indicator swizzling
+
+extension UIViewController {
+    @objc func capsb_prefersHomeIndicatorAutoHidden() -> Bool {
+        return CapacitorStatusBar.homeIndicatorHidden
     }
 }

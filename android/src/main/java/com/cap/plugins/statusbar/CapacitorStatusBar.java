@@ -328,6 +328,108 @@ public class CapacitorStatusBar extends Plugin {
         return insets;
     }
 
+    public void showNavigationBar(Activity activity, boolean animated) {
+        Log.d(TAG, "showNavigationBar: animated=" + animated + ", API=" + Build.VERSION.SDK_INT);
+        Window window = activity.getWindow();
+        View decorView = window.getDecorView();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                Log.d(TAG, "showNavigationBar: showing navigation bar (API 30+)");
+                controller.show(WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+            } else {
+                Log.w(TAG, "showNavigationBar: WindowInsetsController is null");
+            }
+        } else {
+            Log.d(TAG, "showNavigationBar: showing using system UI flags (API 29)");
+            int flags = decorView.getSystemUiVisibility();
+            flags &= ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+            flags &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            decorView.setSystemUiVisibility(flags);
+        }
+
+        // Restore navigation bar background color
+        applyNavigationBarBackground(activity, currentNavBarColor);
+    }
+
+    public void hideNavigationBar(Activity activity, String animation) {
+        Log.d(TAG, "hideNavigationBar: animation=" + animation + ", API=" + Build.VERSION.SDK_INT);
+        Window window = activity.getWindow();
+        View decorView = window.getDecorView();
+
+        String animationType = animation != null ? animation.toLowerCase() : "slide";
+
+        if ("fade".equals(animationType)) {
+            Log.d(TAG, "hideNavigationBar: fade mode - hiding navigation bar with transparent background");
+
+            // Hide the navigation bar icons
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.hide(WindowInsets.Type.navigationBars());
+                    controller.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                }
+            } else {
+                decorView.setSystemUiVisibility(
+                        decorView.getSystemUiVisibility()
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            }
+
+            // Make background transparent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                ViewGroup dv = (ViewGroup) decorView;
+                View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+                if (navOverlay != null) {
+                    navOverlay.setBackgroundColor(Color.TRANSPARENT);
+                }
+            } else {
+                window.setNavigationBarColor(Color.TRANSPARENT);
+            }
+        } else if ("slide".equals(animationType)) {
+            Log.d(TAG, "hideNavigationBar: slide mode - hiding navigation bar completely");
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                WindowInsetsController controller = window.getInsetsController();
+                if (controller != null) {
+                    controller.hide(WindowInsets.Type.navigationBars());
+                    controller.setSystemBarsBehavior(
+                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                } else {
+                    Log.w(TAG, "hideNavigationBar: WindowInsetsController is null");
+                }
+            } else {
+                Log.d(TAG, "hideNavigationBar: hiding using system UI flags (API 29)");
+                decorView.setSystemUiVisibility(
+                        decorView.getSystemUiVisibility()
+                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+            }
+
+            // Make navigation bar overlay transparent
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                ViewGroup dv = (ViewGroup) decorView;
+                View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+                if (navOverlay != null) {
+                    navOverlay.setBackgroundColor(Color.TRANSPARENT);
+                }
+            } else {
+                window.setNavigationBarColor(Color.TRANSPARENT);
+            }
+        } else {
+            Log.w(TAG, "hideNavigationBar: unknown animation type '" + animationType + "', defaulting to slide");
+            hideNavigationBar(activity, "slide");
+        }
+    }
+
     /**
      * Reapply the current style and colors after showing bars.
      * This ensures colors are preserved when hiding and then showing.

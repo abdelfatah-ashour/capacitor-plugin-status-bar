@@ -15,6 +15,8 @@ public class CapacitorStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "hide", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setOverlaysWebView", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setBackground", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "showNavigationBar", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "hideNavigationBar", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "getSafeAreaInsets", returnType: CAPPluginReturnPromise)
     ]
     private let implementation = CapacitorStatusBar()
@@ -65,6 +67,21 @@ public class CapacitorStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
             return
         }
         implementation.setBackground(colorHex: color)
+        call.resolve()
+    }
+
+    @objc func showNavigationBar(_ call: CAPPluginCall) {
+        let animated = call.getBool("animated") ?? true
+        implementation.showNavigationBar(animated: animated)
+        call.resolve()
+    }
+
+    @objc func hideNavigationBar(_ call: CAPPluginCall) {
+        guard let animation = call.getString("animation") else {
+            call.reject("animation is required")
+            return
+        }
+        implementation.hideNavigationBar(animation: animation)
         call.resolve()
     }
 

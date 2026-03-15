@@ -120,6 +120,36 @@ public class CapacitorStatusBarPlugin extends Plugin {
     }
 
     @PluginMethod
+    public void showNavigationBar(PluginCall call) {
+        try {
+            boolean animated = Boolean.TRUE.equals(call.getBoolean("animated", true));
+            getActivity().runOnUiThread(() -> {
+                implementation.showNavigationBar(getActivity(), animated);
+                call.resolve();
+            });
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
+    public void hideNavigationBar(PluginCall call) {
+        try {
+            String animation = call.getString("animation");
+            if (animation == null) {
+                call.reject("animation is required");
+                return;
+            }
+            getActivity().runOnUiThread(() -> {
+                implementation.hideNavigationBar(getActivity(), animation);
+                call.resolve();
+            });
+        } catch (Exception e) {
+            call.reject(e.getMessage());
+        }
+    }
+
+    @PluginMethod
     public void getSafeAreaInsets(PluginCall call) {
         try {
             getActivity().runOnUiThread(() -> {

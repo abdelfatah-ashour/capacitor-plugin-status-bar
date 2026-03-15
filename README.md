@@ -38,6 +38,8 @@ No additional configuration required. The plugin works out of the box on Android
 * [`hide(...)`](#hide)
 * [`setOverlaysWebView(...)`](#setoverlayswebview)
 * [`setBackground(...)`](#setbackground)
+* [`showNavigationBar(...)`](#shownavigationbar)
+* [`hideNavigationBar(...)`](#hidenavigationbar)
 * [`getSafeAreaInsets()`](#getsafeareainsets)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -129,6 +131,36 @@ Set the window background color.
 --------------------
 
 
+### showNavigationBar(...)
+
+```typescript
+showNavigationBar(options: NavigationBarShowOptions) => Promise<void>
+```
+
+Show the navigation bar.
+
+| Param         | Type                                                                          | Description                               |
+| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
+| **`options`** | <code><a href="#navigationbarshowoptions">NavigationBarShowOptions</a></code> | - The options to show the navigation bar. |
+
+--------------------
+
+
+### hideNavigationBar(...)
+
+```typescript
+hideNavigationBar(options: NavigationBarHideOptions) => Promise<void>
+```
+
+Hide the navigation bar.
+
+| Param         | Type                                                                          | Description                               |
+| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
+| **`options`** | <code><a href="#navigationbarhideoptions">NavigationBarHideOptions</a></code> | - The options to hide the navigation bar. |
+
+--------------------
+
+
 ### getSafeAreaInsets()
 
 ```typescript
@@ -191,6 +223,16 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 #### StatusBarSetBackgroundOptions
 
 <code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
+
+
+#### NavigationBarShowOptions
+
+<code>{ animated: boolean; }</code>
+
+
+#### NavigationBarHideOptions
+
+<code>{ /** * The animation type for hiding the navigation bar. * - 'fade': Makes the background transparent without removing the navigation bar. * - 'slide': Hides the navigation bar completely (default behavior). */ animation: <a href="#statusbaranimation">StatusBarAnimation</a>; }</code>
 
 
 #### SafeAreaInsets

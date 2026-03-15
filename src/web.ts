@@ -8,6 +8,8 @@ import type {
   StatusBarHideOptions,
   StatusBarSetBackgroundOptions,
   SafeAreaInsets,
+  NavigationBarShowOptions,
+  NavigationBarHideOptions,
 } from './definitions';
 
 export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusBarPlugin {
@@ -29,6 +31,14 @@ export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusB
 
   async setBackground(options: StatusBarSetBackgroundOptions): Promise<void> {
     console.log('setBackground', options);
+  }
+
+  async showNavigationBar(options: NavigationBarShowOptions): Promise<void> {
+    console.log('showNavigationBar', options);
+  }
+
+  async hideNavigationBar(options: NavigationBarHideOptions): Promise<void> {
+    console.log('hideNavigationBar', options);
   }
 
   async getSafeAreaInsets(): Promise<SafeAreaInsets> {

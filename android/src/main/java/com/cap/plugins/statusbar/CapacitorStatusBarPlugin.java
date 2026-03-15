@@ -1,5 +1,12 @@
 package com.cap.plugins.statusbar;
 
+import android.os.Build;
+import android.view.View;
+
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
+
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -16,6 +23,17 @@ public class CapacitorStatusBarPlugin extends Plugin {
         getActivity().runOnUiThread(() -> {
             implementation.ensureEdgeToEdgeConfigured(getActivity());
             implementation.applyDefaultStyle(getActivity());
+
+            // On Android 15+ (API 35+), edge-to-edge is enforced and the WebView content
+            // extends under system bars. Apply padding so Ionic content stays in the safe area.
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+                View webView = getBridge().getWebView();
+                ViewCompat.setOnApplyWindowInsetsListener(webView, (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
+            }
         });
     }
 

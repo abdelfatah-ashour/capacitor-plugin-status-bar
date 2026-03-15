@@ -92,8 +92,10 @@ import Capacitor
             // Note: This requires UIViewControllerBasedStatusBarAppearance = NO
             self.setStatusBarVisibility(hidden: false, animated: animated)
 
-            // Restore the background view color when showing
-            self.restoreStatusBarBackgroundColor()
+            // Restore the background view color when showing (unless overlay mode is active)
+            if !self.isOverlayMode {
+                self.restoreStatusBarBackgroundColor()
+            }
         }
     }
 

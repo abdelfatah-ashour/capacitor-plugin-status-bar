@@ -34,12 +34,12 @@ No additional configuration required. The plugin works out of the box on Android
 <docgen-index>
 
 * [`setStyle(...)`](#setstyle)
-* [`show(...)`](#show)
-* [`hide(...)`](#hide)
+* [`show()`](#show)
+* [`hide()`](#hide)
 * [`setOverlaysWebView(...)`](#setoverlayswebview)
 * [`setBackground(...)`](#setbackground)
-* [`showNavigationBar(...)`](#shownavigationbar)
-* [`hideNavigationBar(...)`](#hidenavigationbar)
+* [`showNavigationBar()`](#shownavigationbar)
+* [`hideNavigationBar()`](#hidenavigationbar)
 * [`getSafeAreaInsets()`](#getsafeareainsets)
 * [Type Aliases](#type-aliases)
 * [Enums](#enums)
@@ -64,32 +64,24 @@ Set the status bar and navigation bar style and color.
 --------------------
 
 
-### show(...)
+### show()
 
 ```typescript
-show(options: StatusBarShowOptions) => Promise<void>
+show() => Promise<void>
 ```
 
-Show the status bar.
-
-| Param         | Type                                                                  | Description                           |
-| ------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| **`options`** | <code><a href="#statusbarshowoptions">StatusBarShowOptions</a></code> | - The options to show the status bar. |
+Show the status bar and navigation bar.
 
 --------------------
 
 
-### hide(...)
+### hide()
 
 ```typescript
-hide(options: StatusBarHideOptions) => Promise<void>
+hide() => Promise<void>
 ```
 
-Hide the status bar.
-
-| Param         | Type                                                                  | Description                           |
-| ------------- | --------------------------------------------------------------------- | ------------------------------------- |
-| **`options`** | <code><a href="#statusbarhideoptions">StatusBarHideOptions</a></code> | - The options to hide the status bar. |
+Hide the status bar and navigation bar with a slide animation.
 
 --------------------
 
@@ -131,32 +123,24 @@ Set the window background color.
 --------------------
 
 
-### showNavigationBar(...)
+### showNavigationBar()
 
 ```typescript
-showNavigationBar(options: NavigationBarShowOptions) => Promise<void>
+showNavigationBar() => Promise<void>
 ```
 
 Show the navigation bar.
 
-| Param         | Type                                                                          | Description                               |
-| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| **`options`** | <code><a href="#navigationbarshowoptions">NavigationBarShowOptions</a></code> | - The options to show the navigation bar. |
-
 --------------------
 
 
-### hideNavigationBar(...)
+### hideNavigationBar()
 
 ```typescript
-hideNavigationBar(options: NavigationBarHideOptions) => Promise<void>
+hideNavigationBar() => Promise<void>
 ```
 
-Hide the navigation bar.
-
-| Param         | Type                                                                          | Description                               |
-| ------------- | ----------------------------------------------------------------------------- | ----------------------------------------- |
-| **`options`** | <code><a href="#navigationbarhideoptions">NavigationBarHideOptions</a></code> | - The options to hide the navigation bar. |
+Hide the navigation bar with a slide animation (hides completely from screen).
 
 --------------------
 
@@ -205,16 +189,6 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 <code>`#${string}`</code>
 
 
-#### StatusBarShowOptions
-
-<code>{ animated: boolean; }</code>
-
-
-#### StatusBarHideOptions
-
-<code>{ /** * The animation type for hiding the status bar. * - 'fade': Makes the background transparent without removing the status bar and navigation bar. * - 'slide': Hides the status bar and navigation bar completely (default behavior). */ animation: <a href="#statusbaranimation">StatusBarAnimation</a>; }</code>
-
-
 #### StatusBarSetOverlaysWebViewOptions
 
 <code>{ value: boolean; }</code>
@@ -223,16 +197,6 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 #### StatusBarSetBackgroundOptions
 
 <code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
-
-
-#### NavigationBarShowOptions
-
-<code>{ animated: boolean; }</code>
-
-
-#### NavigationBarHideOptions
-
-<code>{ /** * The animation type for hiding the navigation bar. * - 'fade': Makes the background transparent without removing the navigation bar. * - 'slide': Hides the navigation bar completely (default behavior). */ animation: <a href="#statusbaranimation">StatusBarAnimation</a>; }</code>
 
 
 #### SafeAreaInsets
@@ -250,14 +214,5 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 | **`LIGHT`**  | <code>'LIGHT'</code>  |
 | **`DARK`**   | <code>'DARK'</code>   |
 | **`CUSTOM`** | <code>'CUSTOM'</code> |
-
-
-#### StatusBarAnimation
-
-| Members     | Value                |
-| ----------- | -------------------- |
-| **`NONE`**  | <code>'none'</code>  |
-| **`FADE`**  | <code>'fade'</code>  |
-| **`SLIDE`** | <code>'slide'</code> |
 
 </docgen-api>

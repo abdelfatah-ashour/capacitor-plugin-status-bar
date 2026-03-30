@@ -38,17 +38,12 @@ public class CapacitorStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func show(_ call: CAPPluginCall) {
-        let animated = call.getBool("animated") ?? true
-        implementation.show(animated: animated)
+        implementation.show(animated: true)
         call.resolve()
     }
 
     @objc func hide(_ call: CAPPluginCall) {
-        guard let animation = call.getString("animation") else {
-            call.reject("animation is required")
-            return
-        }
-        implementation.hide(animation: animation)
+        implementation.hide(animation: "slide")
         call.resolve()
     }
 
@@ -71,17 +66,12 @@ public class CapacitorStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func showNavigationBar(_ call: CAPPluginCall) {
-        let animated = call.getBool("animated") ?? true
-        implementation.showNavigationBar(animated: animated)
+        implementation.showNavigationBar(animated: true)
         call.resolve()
     }
 
     @objc func hideNavigationBar(_ call: CAPPluginCall) {
-        guard let animation = call.getString("animation") else {
-            call.reject("animation is required")
-            return
-        }
-        implementation.hideNavigationBar(animation: animation)
+        implementation.hideNavigationBar(animation: "slide")
         call.resolve()
     }
 

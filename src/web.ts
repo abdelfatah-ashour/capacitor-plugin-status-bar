@@ -4,12 +4,8 @@ import type {
   StatusBarOptions,
   CapacitorStatusBarPlugin,
   StatusBarSetOverlaysWebViewOptions,
-  StatusBarShowOptions,
-  StatusBarHideOptions,
   StatusBarSetBackgroundOptions,
   SafeAreaInsets,
-  NavigationBarShowOptions,
-  NavigationBarHideOptions,
 } from './definitions';
 
 export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusBarPlugin {
@@ -17,12 +13,12 @@ export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusB
     console.log('setStyle', options);
   }
 
-  async show(options: StatusBarShowOptions): Promise<void> {
-    console.log('show', options);
+  async show(): Promise<void> {
+    console.log('show');
   }
 
-  async hide(options: StatusBarHideOptions): Promise<void> {
-    console.log('hide', options);
+  async hide(): Promise<void> {
+    console.log('hide');
   }
 
   async setOverlaysWebView(options: StatusBarSetOverlaysWebViewOptions): Promise<void> {
@@ -33,12 +29,12 @@ export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusB
     console.log('setBackground', options);
   }
 
-  async showNavigationBar(options: NavigationBarShowOptions): Promise<void> {
-    console.log('showNavigationBar', options);
+  async showNavigationBar(): Promise<void> {
+    console.log('showNavigationBar');
   }
 
-  async hideNavigationBar(options: NavigationBarHideOptions): Promise<void> {
-    console.log('hideNavigationBar', options);
+  async hideNavigationBar(): Promise<void> {
+    console.log('hideNavigationBar');
   }
 
   async getSafeAreaInsets(): Promise<SafeAreaInsets> {

@@ -150,6 +150,9 @@ public class CapacitorStatusBar extends Plugin {
 
         // Restore the overlay backgrounds to their original colors
         restoreStatusBarBackground(activity);
+
+        // Also show the navigation bar
+        showNavigationBar(activity, true);
     }
 
     public void hideStatusBar(Activity activity, String animation) {
@@ -164,6 +167,7 @@ public class CapacitorStatusBar extends Plugin {
             // navigation bar
             Log.d(TAG, "hideStatusBar: fade mode - making backgrounds transparent");
             makeStatusBarBackgroundTransparent(activity);
+            hideNavigationBar(activity, "fade");
         } else if ("slide".equals(animationType)) {
             // Slide mode: Hide status bar and navigation bar completely (current behavior)
             Log.d(TAG, "hideStatusBar: slide mode - hiding bars completely");

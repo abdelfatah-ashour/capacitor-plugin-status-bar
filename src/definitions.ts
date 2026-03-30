@@ -32,38 +32,12 @@ type StatusBarStyleOptions =
 
 export type StatusBarOptions = StatusBarStyleOptions;
 
-export type StatusBarShowOptions = {
-  animated: boolean;
-};
-
-export type StatusBarHideOptions = {
-  /**
-   * The animation type for hiding the status bar.
-   * - 'fade': Makes the background transparent without removing the status bar and navigation bar.
-   * - 'slide': Hides the status bar and navigation bar completely (default behavior).
-   */
-  animation: StatusBarAnimation;
-};
-
 export type StatusBarSetOverlaysWebViewOptions = {
   value: boolean;
 };
 
 export type StatusBarSetBackgroundOptions = {
   color: StatusBarColor;
-};
-
-export type NavigationBarShowOptions = {
-  animated: boolean;
-};
-
-export type NavigationBarHideOptions = {
-  /**
-   * The animation type for hiding the navigation bar.
-   * - 'fade': Makes the background transparent without removing the navigation bar.
-   * - 'slide': Hides the navigation bar completely (default behavior).
-   */
-  animation: StatusBarAnimation;
 };
 
 export type SafeAreaInsets = {
@@ -82,17 +56,13 @@ export interface CapacitorStatusBarPlugin {
    */
   setStyle(options: StatusBarOptions): Promise<void>;
   /**
-   * Show the status bar.
-   * @param options - The options to show the status bar.
-   * @param options.animated - Whether to animate the status bar.
+   * Show the status bar and navigation bar.
    */
-  show(options: StatusBarShowOptions): Promise<void>;
+  show(): Promise<void>;
   /**
-   * Hide the status bar.
-   * @param options - The options to hide the status bar.
-   * @param options.animation - The animation type: 'fade' makes background transparent, 'slide' hides bars completely.
+   * Hide the status bar and navigation bar with a slide animation.
    */
-  hide(options: StatusBarHideOptions): Promise<void>;
+  hide(): Promise<void>;
   /**
    * Set whether the status bar overlays the web view.
    *
@@ -115,16 +85,12 @@ export interface CapacitorStatusBarPlugin {
   setBackground(options: StatusBarSetBackgroundOptions): Promise<void>;
   /**
    * Show the navigation bar.
-   * @param options - The options to show the navigation bar.
-   * @param options.animated - Whether to animate the navigation bar.
    */
-  showNavigationBar(options: NavigationBarShowOptions): Promise<void>;
+  showNavigationBar(): Promise<void>;
   /**
-   * Hide the navigation bar.
-   * @param options - The options to hide the navigation bar.
-   * @param options.animation - The animation type: 'fade' makes background transparent, 'slide' hides bar completely.
+   * Hide the navigation bar with a slide animation (hides completely from screen).
    */
-  hideNavigationBar(options: NavigationBarHideOptions): Promise<void>;
+  hideNavigationBar(): Promise<void>;
   /**
    * Get the safe area insets.
    * Returns the insets for status bar, navigation bar, and notch areas.

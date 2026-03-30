@@ -58,9 +58,8 @@ public class CapacitorStatusBarPlugin extends Plugin {
     @PluginMethod
     public void show(PluginCall call) {
         try {
-            boolean animated = Boolean.TRUE.equals(call.getBoolean("animated", true));
             getActivity().runOnUiThread(() -> {
-                implementation.showStatusBar(getActivity(), animated);
+                implementation.showStatusBar(getActivity(), true);
                 call.resolve();
             });
         } catch (Exception e) {
@@ -71,13 +70,8 @@ public class CapacitorStatusBarPlugin extends Plugin {
     @PluginMethod
     public void hide(PluginCall call) {
         try {
-            String animation = call.getString("animation");
-            if (animation == null) {
-                call.reject("animation is required");
-                return;
-            }
             getActivity().runOnUiThread(() -> {
-                implementation.hideStatusBar(getActivity(), animation);
+                implementation.hideStatusBar(getActivity(), "slide");
                 call.resolve();
             });
         } catch (Exception e) {
@@ -122,9 +116,8 @@ public class CapacitorStatusBarPlugin extends Plugin {
     @PluginMethod
     public void showNavigationBar(PluginCall call) {
         try {
-            boolean animated = Boolean.TRUE.equals(call.getBoolean("animated", true));
             getActivity().runOnUiThread(() -> {
-                implementation.showNavigationBar(getActivity(), animated);
+                implementation.showNavigationBar(getActivity(), true);
                 call.resolve();
             });
         } catch (Exception e) {
@@ -135,13 +128,8 @@ public class CapacitorStatusBarPlugin extends Plugin {
     @PluginMethod
     public void hideNavigationBar(PluginCall call) {
         try {
-            String animation = call.getString("animation");
-            if (animation == null) {
-                call.reject("animation is required");
-                return;
-            }
             getActivity().runOnUiThread(() -> {
-                implementation.hideNavigationBar(getActivity(), animation);
+                implementation.hideNavigationBar(getActivity(), "slide");
                 call.resolve();
             });
         } catch (Exception e) {

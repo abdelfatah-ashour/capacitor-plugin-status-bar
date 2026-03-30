@@ -96,6 +96,9 @@ import Capacitor
             if !self.isOverlayMode {
                 self.restoreStatusBarBackgroundColor()
             }
+
+            // Also show the navigation bar (home indicator)
+            self.showNavigationBar(animated: animated)
         }
     }
 
@@ -113,6 +116,7 @@ import Capacitor
                 // Fade mode: Make background transparent without removing status bar
                 print("CapacitorStatusBar: hide() - fade mode: making background transparent")
                 self.makeStatusBarBackgroundTransparent()
+                self.hideNavigationBar(animation: "fade")
             } else if animationType == "slide" {
                 // Slide mode: Hide the status bar completely (current behavior)
                 print("CapacitorStatusBar: hide() - slide mode: hiding bars completely")
@@ -122,10 +126,12 @@ import Capacitor
                 self.setStatusBarVisibility(hidden: true, animated: true)
                 // Also make the background view transparent when hiding
                 self.makeStatusBarBackgroundTransparent()
+                self.hideNavigationBar(animation: "slide")
             } else {
                 print("CapacitorStatusBar: hide() - unknown animation type '\(animationType)', defaulting to slide")
                 self.setStatusBarVisibility(hidden: true, animated: true)
                 self.makeStatusBarBackgroundTransparent()
+                self.hideNavigationBar(animation: "slide")
             }
         }
     }

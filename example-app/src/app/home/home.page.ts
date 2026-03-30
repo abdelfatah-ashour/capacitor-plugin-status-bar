@@ -2,7 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
-import { CapacitorStatusBar, Style, StatusBarColor, StatusBarAnimation} from "capacitor-plugin-status-bar";
+import { CapacitorStatusBar, Style, StatusBarColor } from "capacitor-plugin-status-bar";
 import {SafeAreaInsets} from "capacitor-plugin-status-bar";
 import { JsonPipe } from '@angular/common';
 
@@ -49,15 +49,11 @@ export class HomePage implements OnInit {
   }
 
   async show() {
-    await CapacitorStatusBar.show({ animated: this.animated() });
+    await CapacitorStatusBar.show();
   }
 
-  async hideInFade() {
-    await CapacitorStatusBar.hide({ animation: StatusBarAnimation.FADE });
-  }
-
-  async hideInSlide() {
-    await CapacitorStatusBar.hide({ animation: StatusBarAnimation.SLIDE });
+  async hide() {
+    await CapacitorStatusBar.hide();
   }
 
   async setOverlay() {
@@ -65,15 +61,11 @@ export class HomePage implements OnInit {
   }
 
   async showNavigationBar() {
-    await CapacitorStatusBar.showNavigationBar({ animated: this.animated() });
+    await CapacitorStatusBar.showNavigationBar();
   }
 
-  async hideNavigationBarInFade() {
-    await CapacitorStatusBar.hideNavigationBar({ animation: StatusBarAnimation.FADE });
-  }
-
-  async hideNavigationBarInSlide() {
-    await CapacitorStatusBar.hideNavigationBar({ animation: StatusBarAnimation.SLIDE });
+  async hideNavigationBar() {
+    await CapacitorStatusBar.hideNavigationBar();
   }
 
   async getSafeAreaInsets() {

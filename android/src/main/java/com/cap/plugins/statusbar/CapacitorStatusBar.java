@@ -512,11 +512,13 @@ public class CapacitorStatusBar extends Plugin {
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
                 + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+: Use overlay views (gesture nav ignores setNavigationBarColor; mandatory on 15+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // Android 15+ (API 35+): edge-to-edge enforced, setNavigationBarColor() is a no-op
             ensureNavBarOverlay(activity, color);
         } else {
-            // Android < 12: Use native window API directly
+            // API 29–34: setNavigationBarColor() works for button navigation.
+            // Gesture navigation ignores it (system enforces transparency for gesture handles),
+            // but in that case there is no visible nav bar to color anyway.
             activity.getWindow().setNavigationBarColor(color);
         }
     }
@@ -647,17 +649,8 @@ public class CapacitorStatusBar extends Plugin {
                 navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
                 Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12–14: status bar uses native API, nav bar uses overlay
-            window.setStatusBarColor(Color.TRANSPARENT);
-            Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar color set transparent (native)");
-            View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-            if (navBarOverlay != null) {
-                navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
-            }
         } else {
-            // Android < 12: both bars use native window API
+            // API 29–34: both bars use native window API
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             Log.d(TAG, "makeStatusBarBackgroundTransparent: set native bar colors to transparent");

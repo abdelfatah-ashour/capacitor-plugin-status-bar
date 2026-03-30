@@ -58,12 +58,14 @@ public class CapacitorStatusBar extends Plugin {
         View decorView = window.getDecorView();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+ (API 31+): Full edge-to-edge with overlay views.
-            // Android 12+ gesture navigation ignores setStatusBarColor/setNavigationBarColor;
-            // Android 15+ (API 35) enforces edge-to-edge mandatory. All require the overlay approach.
+            // Android 12+ (API 31+): enable edge-to-edge layout.
+            // The nav bar uses overlay views because gesture navigation ignores setNavigationBarColor().
+            // The status bar still uses setStatusBarColor() reliably on API 31–34;
+            // overlay is only needed on API 35+ where edge-to-edge is enforced and the native API is a no-op.
             WindowCompat.setDecorFitsSystemWindows(window, false);
 
-            // Make native bar colors transparent so our overlays are the sole color source
+            // Set a transparent baseline; setStyle() will apply the actual color via setStatusBarColor()
+            // (API 31-34) or the status bar overlay (API 35+).
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             window.setStatusBarContrastEnforced(false);
@@ -497,11 +499,12 @@ public class CapacitorStatusBar extends Plugin {
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+: Use overlay views (gesture nav ignores setStatusBarColor; mandatory on 15+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // Android 15+ (API 35+): edge-to-edge is enforced, setStatusBarColor() is a no-op
             ensureStatusBarOverlay(activity, color);
         } else {
-            // Android < 12: Use native window API directly
+            // API 29–34: setStatusBarColor() works reliably for the status bar on all navigation modes.
+            // Note: gesture navigation only ignores setNavigationBarColor(), not setStatusBarColor().
             activity.getWindow().setStatusBarColor(color);
         }
     }
@@ -629,25 +632,32 @@ public class CapacitorStatusBar extends Plugin {
      */
     private void makeStatusBarBackgroundTransparent(Activity activity) {
         Log.d(TAG, "makeStatusBarBackgroundTransparent: API=" + Build.VERSION.SDK_INT);
+        Window window = activity.getWindow();
+        ViewGroup decorView = (ViewGroup) window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+: Set overlay backgrounds to transparent
-            ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
-
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            // Android 15+: both bars use overlay views
             View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
             if (statusBarOverlay != null) {
                 statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
                 Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
             }
-
             View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
             if (navBarOverlay != null) {
                 navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: navigation bar overlay made transparent");
+                Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
+            }
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12–14: status bar uses native API, nav bar uses overlay
+            window.setStatusBarColor(Color.TRANSPARENT);
+            Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar color set transparent (native)");
+            View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+            if (navBarOverlay != null) {
+                navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
+                Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
             }
         } else {
-            // Android < 13: Use native window API directly
-            Window window = activity.getWindow();
+            // Android < 12: both bars use native window API
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             Log.d(TAG, "makeStatusBarBackgroundTransparent: set native bar colors to transparent");

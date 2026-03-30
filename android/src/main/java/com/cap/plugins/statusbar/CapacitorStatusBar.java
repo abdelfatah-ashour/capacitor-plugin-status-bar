@@ -216,30 +216,23 @@ public class CapacitorStatusBar extends Plugin {
         currentStyle = style;
         currentColorHex = colorHex;
 
-        // Set icon appearance (light/dark) regardless of background approach
+        // Determine icon appearance based on style
         boolean lightBackground;
         if ("LIGHT".equalsIgnoreCase(style)) {
-            // Light background -> dark icons
-            setLightStatusBarIcons(window, true);
             lightBackground = true;
         } else if ("DARK".equalsIgnoreCase(style)) {
-            // Dark background -> light icons
-            setLightStatusBarIcons(window, false);
             lightBackground = false;
         } else if ("CUSTOM".equalsIgnoreCase(style)) {
             // CUSTOM: Derive icon color from provided custom color
             int parsed = parseColorOrDefault(colorHex, Color.BLACK);
-            boolean isLight = isEffectiveLightColor(parsed);
-            // If background is light, request dark icons
-            setLightStatusBarIcons(window, isLight);
-            lightBackground = isLight;
+            lightBackground = isEffectiveLightColor(parsed);
         } else {
             // Default: Auto-detect based on system theme (follow device theme)
             boolean isSystemDarkMode = isSystemInDarkMode(activity);
-            setLightStatusBarIcons(window, !isSystemDarkMode);
             lightBackground = !isSystemDarkMode;
         }
 
+        // Apply background colors first
         if ("CUSTOM".equalsIgnoreCase(style) && colorHex != null) {
             int color = parseColorOrDefault(colorHex, lightBackground ? Color.WHITE : Color.BLACK);
             currentStatusBarColor = color;
@@ -265,6 +258,12 @@ public class CapacitorStatusBar extends Plugin {
             applyStatusBarBackground(activity, themeColor);
             applyNavigationBarBackground(activity, themeColor);
         }
+
+        // Set icon appearance AFTER background operations.
+        // On Android 13 (API 33), applyStatusBarBackground triggers requestApplyInsets()
+        // which causes the WindowInsetsController to reset setSystemBarsAppearance.
+        // Calling setLightStatusBarIcons last ensures the icon style is not overridden.
+        setLightStatusBarIcons(window, lightBackground);
     }
 
     /**

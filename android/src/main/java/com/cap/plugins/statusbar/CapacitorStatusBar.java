@@ -57,10 +57,10 @@ public class CapacitorStatusBar extends Plugin {
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+ (API 33+): Full edge-to-edge with overlay views.
-            // Android 13-14 introduced gesture navigation that ignores setNavigationBarColor;
-            // Android 15+ (API 35) enforces edge-to-edge mandatory. Both require the overlay approach.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+ (API 31+): Full edge-to-edge with overlay views.
+            // Android 12+ gesture navigation ignores setStatusBarColor/setNavigationBarColor;
+            // Android 15+ (API 35) enforces edge-to-edge mandatory. All require the overlay approach.
             WindowCompat.setDecorFitsSystemWindows(window, false);
 
             // Make native bar colors transparent so our overlays are the sole color source
@@ -101,7 +101,7 @@ public class CapacitorStatusBar extends Plugin {
 
             Log.d(TAG, "ensureEdgeToEdgeConfigured: edge-to-edge with overlay views, API=" + Build.VERSION.SDK_INT);
         } else {
-            // Android < 13 (API < 33): Only disable contrast enforcement.
+            // Android < 12 (API < 31): Only disable contrast enforcement.
             // Do NOT call setDecorFitsSystemWindows(false), create overlay views, or set insets listener.
             // This avoids conflicts with plugins like @capawesome/capacitor-android-edge-to-edge-support.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -385,7 +385,7 @@ public class CapacitorStatusBar extends Plugin {
             }
 
             // Make background transparent
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 ViewGroup dv = (ViewGroup) decorView;
                 View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
                 if (navOverlay != null) {
@@ -417,7 +417,7 @@ public class CapacitorStatusBar extends Plugin {
             }
 
             // Make navigation bar overlay transparent
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 ViewGroup dv = (ViewGroup) decorView;
                 View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
                 if (navOverlay != null) {
@@ -494,11 +494,11 @@ public class CapacitorStatusBar extends Plugin {
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+: Use overlay views (gesture nav ignores setStatusBarColor on 13-14; mandatory on 15+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+: Use overlay views (gesture nav ignores setStatusBarColor; mandatory on 15+)
             ensureStatusBarOverlay(activity, color);
         } else {
-            // Android < 13: Use native window API directly
+            // Android < 12: Use native window API directly
             activity.getWindow().setStatusBarColor(color);
         }
     }
@@ -506,11 +506,11 @@ public class CapacitorStatusBar extends Plugin {
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
                 + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+: Use overlay views (gesture nav ignores setNavigationBarColor on 13-14; mandatory on 15+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+: Use overlay views (gesture nav ignores setNavigationBarColor; mandatory on 15+)
             ensureNavBarOverlay(activity, color);
         } else {
-            // Android < 13: Use native window API directly
+            // Android < 12: Use native window API directly
             activity.getWindow().setNavigationBarColor(color);
         }
     }
@@ -627,8 +627,8 @@ public class CapacitorStatusBar extends Plugin {
     private void makeStatusBarBackgroundTransparent(Activity activity) {
         Log.d(TAG, "makeStatusBarBackgroundTransparent: API=" + Build.VERSION.SDK_INT);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            // Android 13+: Set overlay backgrounds to transparent
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Android 12+: Set overlay backgrounds to transparent
             ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
 
             View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);

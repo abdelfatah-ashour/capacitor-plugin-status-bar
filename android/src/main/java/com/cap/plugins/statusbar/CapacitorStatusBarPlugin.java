@@ -71,7 +71,7 @@ public class CapacitorStatusBarPlugin extends Plugin {
     public void hide(PluginCall call) {
         try {
             getActivity().runOnUiThread(() -> {
-                implementation.hideStatusBar(getActivity(), "slide");
+                implementation.hideStatusBar(getActivity());
                 call.resolve();
             });
         } catch (Exception e) {

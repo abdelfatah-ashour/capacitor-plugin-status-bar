@@ -625,9 +625,9 @@ public class CapacitorStatusBar extends Plugin {
     }
 
     private void applyWindowBackground(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "applyWindowBackground: color=#" + Integer.toHexString(color));
+        Log.d(TAG, "applyWindowBackground: body is always transparent; status/nav bars use overlays/native APIs");
         View decorView = activity.getWindow().getDecorView();
-        decorView.setBackgroundColor(color);
+        decorView.setBackgroundColor(Color.TRANSPARENT);
     }
 
     /**

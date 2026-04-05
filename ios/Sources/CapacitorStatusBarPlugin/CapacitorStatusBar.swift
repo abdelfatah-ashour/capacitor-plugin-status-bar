@@ -227,8 +227,8 @@ import Capacitor
                 return
             }
 
-            window.backgroundColor = color
-            print("CapacitorStatusBar: setBackground - Set window background to \(colorHex)")
+            window.backgroundColor = .clear
+            print("CapacitorStatusBar: setBackground - Body is always transparent; status/nav bars use overlays/native APIs")
         }
     }
 

@@ -237,20 +237,15 @@ import Capacitor
             var insets: [String: CGFloat] = ["top": 0, "bottom": 0, "left": 0, "right": 0]
 
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let window = windowScene.windows.first {
-                // Use statusBarManager for accurate status bar height
-                let statusBarHeight = windowScene.statusBarManager?.statusBarFrame.height ?? 0
+               let window = windowScene.windows.first(where: { $0.isKeyWindow }) ?? windowScene.windows.first {
                 let safeAreaInsets = window.safeAreaInsets
 
-                // top: status bar height specifically
-                insets["top"] = statusBarHeight
-                // bottom: home indicator / navigation bar area
-                insets["bottom"] = safeAreaInsets.bottom
-                // left/right: safe area for landscape / display cutouts
-                insets["left"] = safeAreaInsets.left
-                insets["right"] = safeAreaInsets.right
+                insets["top"] = self.sanitizedInsetValue(safeAreaInsets.top)
+                insets["bottom"] = 0
+                insets["left"] = 0
+                insets["right"] = 0
 
-                print("CapacitorStatusBar: getSafeAreaInsets - top=\(statusBarHeight), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
+                print("CapacitorStatusBar: getSafeAreaInsets - top=\(safeAreaInsets.top), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
             } else {
                 print("CapacitorStatusBar: getSafeAreaInsets - Unable to get window, returning zero insets")
             }
@@ -397,6 +392,12 @@ import Capacitor
 
         // Calculate relative luminance using the formula for sRGB
         return (0.299 * red + 0.587 * green + 0.114 * blue)
+    }
+
+    /// Guard against non-finite/negative inset values before bridging to JS.
+    private func sanitizedInsetValue(_ value: CGFloat) -> CGFloat {
+        guard value.isFinite else { return 0 }
+        return max(0, value)
     }
 
     private func isSystemInDarkMode() -> Bool {

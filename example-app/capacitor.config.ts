@@ -6,6 +6,9 @@ const config: CapacitorConfig = {
   appName: 'example-app',
   webDir: 'www',
   plugins: {
+    SystemBars:{
+      insetsHandling: "css",
+    },
     Keyboard: {
       resize: KeyboardResize.Body,
       style: KeyboardStyle.Dark,

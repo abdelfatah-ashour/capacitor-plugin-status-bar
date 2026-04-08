@@ -241,11 +241,14 @@ import Capacitor
                 let safeAreaInsets = window.safeAreaInsets
 
                 insets["top"] = self.sanitizedInsetValue(safeAreaInsets.top)
-                insets["bottom"] = 0
+                let homeIndicatorHeight: CGFloat = safeAreaInsets.bottom > 0
+                    ? min(13.0, safeAreaInsets.bottom)
+                    : 0
+                insets["bottom"] = self.sanitizedInsetValue(homeIndicatorHeight)
                 insets["left"] = 0
                 insets["right"] = 0
 
-                print("CapacitorStatusBar: getSafeAreaInsets - top=\(safeAreaInsets.top), bottom=\(safeAreaInsets.bottom), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
+                print("CapacitorStatusBar: getSafeAreaInsets - top=\(safeAreaInsets.top), bottom=\(homeIndicatorHeight) (raw: \(safeAreaInsets.bottom)), left=\(safeAreaInsets.left), right=\(safeAreaInsets.right)")
             } else {
                 print("CapacitorStatusBar: getSafeAreaInsets - Unable to get window, returning zero insets")
             }

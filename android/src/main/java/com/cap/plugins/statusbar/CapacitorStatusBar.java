@@ -48,37 +48,32 @@ public class CapacitorStatusBar extends Plugin {
     // CapacitorStatusBarPlugin.load().
 
     /**
-     * Ensures edge-to-edge is properly configured for Android 15+.
-     * Sets up a unified insets listener on the decorView that handles both
-     * IME insets and overlay view sizing.
+     * Ensures edge-to-edge is properly configured for Android 12+.
+     * Sets up a unified insets listener on the decorView that handles
+     * overlay view sizing and WebView padding so content stays within
+     * the safe area.
      *
      * @param activity The activity to configure
+     * @param webView  The Capacitor WebView to apply safe-area padding to (may be null)
      */
-    public void ensureEdgeToEdgeConfigured(Activity activity) {
+    public void ensureEdgeToEdgeConfigured(Activity activity, @Nullable View webView) {
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // Android 12+ (API 31+): enable edge-to-edge layout.
-            // The nav bar uses overlay views because gesture navigation ignores
-            // setNavigationBarColor().
-            // The status bar still uses setStatusBarColor() reliably on API 31–34;
-            // overlay is only needed on API 35+ where edge-to-edge is enforced and the
-            // native API is a no-op.
             WindowCompat.setDecorFitsSystemWindows(window, false);
 
-            // Set a transparent baseline; setStyle() will apply the actual color via
-            // setStatusBarColor()
-            // (API 31-34) or the status bar overlay (API 35+).
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             window.setStatusBarContrastEnforced(false);
             window.setNavigationBarContrastEnforced(false);
 
-            // Single unified insets listener on decorView for overlay sizing
             ViewCompat.setOnApplyWindowInsetsListener(decorView, (v, insets) -> {
-                // Size status bar overlay
                 int top = insets.getInsets(WindowInsetsCompat.Type.statusBars()).top;
+                int navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
+
+                // Size status bar overlay
                 View statusOverlay = ((ViewGroup) v).findViewWithTag(STATUS_BAR_OVERLAY_TAG);
                 if (statusOverlay != null) {
                     ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
@@ -89,29 +84,49 @@ public class CapacitorStatusBar extends Plugin {
                     }
                 }
 
-                // Size navigation bar overlay
-                int bottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+                // Size navigation bar overlay — collapse it when the keyboard is
+                // open since the nav bar is hidden behind the IME.
+                int overlayBottom = imeVisible ? 0 : navBottom;
                 View navOverlay = ((ViewGroup) v).findViewWithTag(NAV_BAR_OVERLAY_TAG);
                 if (navOverlay != null) {
                     ViewGroup.LayoutParams params = navOverlay.getLayoutParams();
-                    if (params.height != bottom) {
-                        params.height = bottom;
+                    if (params.height != overlayBottom) {
+                        params.height = overlayBottom;
                         navOverlay.setLayoutParams(params);
-                        Log.d(TAG, "insetsListener: nav bar overlay height=" + bottom);
+                        Log.d(TAG, "insetsListener: nav bar overlay height=" + overlayBottom
+                                + " (imeVisible=" + imeVisible + ")");
                     }
                 }
 
-                ViewCompat.onApplyWindowInsets(v, insets);
-                return insets;
+                // Inset the WebView via layout margins so it never renders behind
+                // system bars. When the keyboard is open the nav bar is behind the
+                // IME, so drop the bottom margin to avoid a gap above the keyboard.
+                if (webView != null
+                        && webView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+                    ViewGroup.MarginLayoutParams mlp =
+                            (ViewGroup.MarginLayoutParams) webView.getLayoutParams();
+                    int left = insets.getInsets(WindowInsetsCompat.Type.systemBars()).left;
+                    int right = insets.getInsets(WindowInsetsCompat.Type.systemBars()).right;
+                    int bottomMargin = imeVisible ? 0 : navBottom;
+                    if (mlp.topMargin != top || mlp.bottomMargin != bottomMargin
+                            || mlp.leftMargin != left || mlp.rightMargin != right) {
+                        mlp.topMargin = top;
+                        mlp.bottomMargin = bottomMargin;
+                        mlp.leftMargin = left;
+                        mlp.rightMargin = right;
+                        webView.setLayoutParams(mlp);
+                        Log.d(TAG, "insetsListener: webView margins t=" + top
+                                + " b=" + bottomMargin + " l=" + left + " r=" + right
+                                + " (imeVisible=" + imeVisible + ")");
+                    }
+                }
+
+                return WindowInsetsCompat.CONSUMED;
             });
 
+            decorView.requestApplyInsets();
             Log.d(TAG, "ensureEdgeToEdgeConfigured: edge-to-edge with overlay views, API=" + Build.VERSION.SDK_INT);
         } else {
-            // Android < 12 (API < 31): Only disable contrast enforcement.
-            // Do NOT call setDecorFitsSystemWindows(false), create overlay views, or set
-            // insets listener.
-            // This avoids conflicts with plugins like
-            // @capawesome/capacitor-android-edge-to-edge-support.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 window.setStatusBarContrastEnforced(false);
                 window.setNavigationBarContrastEnforced(false);

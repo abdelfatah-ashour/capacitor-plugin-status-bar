@@ -509,15 +509,12 @@ public class CapacitorStatusBar extends Plugin {
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // Android 15+ (API 35+): edge-to-edge is enforced, setStatusBarColor() is a
-            // no-op
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+: edge-to-edge is enabled, setStatusBarColor() is unreliable.
+            // Use an overlay View drawn on top of the status bar area.
             ensureStatusBarOverlay(activity, color);
         } else {
-            // API 29–34: setStatusBarColor() works reliably for the status bar on all
-            // navigation modes.
-            // Note: gesture navigation only ignores setNavigationBarColor(), not
-            // setStatusBarColor().
+            // API 29–30: no edge-to-edge, native API works reliably.
             activity.getWindow().setStatusBarColor(color);
         }
     }
@@ -525,15 +522,13 @@ public class CapacitorStatusBar extends Plugin {
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
         Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
                 + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // Android 15+ (API 35+): edge-to-edge enforced, setNavigationBarColor() is a
-            // no-op
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+: edge-to-edge is enabled, setNavigationBarColor() is unreliable
+            // (especially gesture navigation which ignores it entirely).
+            // Use an overlay View drawn at the bottom of the screen.
             ensureNavBarOverlay(activity, color);
         } else {
-            // API 29–34: setNavigationBarColor() works for button navigation.
-            // Gesture navigation ignores it (system enforces transparency for gesture
-            // handles),
-            // but in that case there is no visible nav bar to color anyway.
+            // API 29–30: no edge-to-edge, native API works for button navigation.
             activity.getWindow().setNavigationBarColor(color);
         }
     }
@@ -654,8 +649,8 @@ public class CapacitorStatusBar extends Plugin {
         Window window = activity.getWindow();
         ViewGroup decorView = (ViewGroup) window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM) {
-            // Android 15+: both bars use overlay views
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // API 31+: edge-to-edge uses overlay views for both bars
             View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
             if (statusBarOverlay != null) {
                 statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
@@ -667,7 +662,7 @@ public class CapacitorStatusBar extends Plugin {
                 Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
             }
         } else {
-            // API 29–34: both bars use native window API
+            // API 29–30: no edge-to-edge, native window API
             window.setStatusBarColor(Color.TRANSPARENT);
             window.setNavigationBarColor(Color.TRANSPARENT);
             Log.d(TAG, "makeStatusBarBackgroundTransparent: set native bar colors to transparent");

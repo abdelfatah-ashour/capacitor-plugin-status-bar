@@ -41,7 +41,7 @@ Each platform follows a two-class pattern:
 
 ### Plugin API Methods
 
-`setStyle` · `show` · `hide` · `setOverlaysWebView` · `setBackground` · `getSafeAreaInsets`
+`setStyle` · `show` · `hide` · `setOverlaysWebView` · `getSafeAreaInsets`
 
 ### Key Types (src/definitions.ts)
 
@@ -52,8 +52,8 @@ Each platform follows a two-class pattern:
 ## Platform Notes
 
 ### iOS
-- Requires `UIViewControllerBasedStatusBarAppearance = NO` in Info.plist
-- Uses KVC for status bar control (avoids deprecation warnings)
+- Requires `UIViewControllerBasedStatusBarAppearance = YES` (default) in Info.plist
+- Uses method swizzling on the root view controller for status bar style, visibility, and home indicator control
 - All UI operations dispatched to main queue
 
 ### Android

@@ -36,10 +36,6 @@ export type StatusBarSetOverlaysWebViewOptions = {
   value: boolean;
 };
 
-export type StatusBarSetBackgroundOptions = {
-  color: StatusBarColor;
-};
-
 export type SafeAreaInsets = {
   top: number;
   bottom: number;
@@ -77,12 +73,6 @@ export interface CapacitorStatusBarPlugin {
    * @param options.value - Whether the status bar overlays the web view (required).
    */
   setOverlaysWebView(options: StatusBarSetOverlaysWebViewOptions): Promise<void>;
-  /**
-   * Set the window background color.
-   * @param options - The options to set the window background color.
-   * @param options.color - The background color in HEX format.
-   */
-  setBackground(options: StatusBarSetBackgroundOptions): Promise<void>;
   /**
    * Show the navigation bar.
    */

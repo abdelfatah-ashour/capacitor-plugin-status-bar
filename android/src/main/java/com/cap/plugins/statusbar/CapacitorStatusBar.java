@@ -121,7 +121,7 @@ public class CapacitorStatusBar extends Plugin {
                     }
                 }
 
-                return WindowInsetsCompat.CONSUMED;
+                return insets;
             });
 
             decorView.requestApplyInsets();
@@ -151,10 +151,8 @@ public class CapacitorStatusBar extends Plugin {
             // API 30+ (Android 11+) - Use WindowInsetsController
             WindowInsetsController controller = window.getInsetsController();
             if (controller != null) {
-                Log.d(TAG, "showStatusBar: showing system bars (API 30+)");
-                // Show both status and navigation bars together
-                controller.show(WindowInsets.Type.systemBars());
-                // Set behavior for transient bars (user can swipe to reveal)
+                Log.d(TAG, "showStatusBar: showing status bar (API 30+)");
+                controller.show(WindowInsets.Type.statusBars());
                 controller.setSystemBarsBehavior(
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             } else {
@@ -164,35 +162,27 @@ public class CapacitorStatusBar extends Plugin {
             // API 29 (Android 10) - Use system UI visibility flags (deprecated but
             // necessary)
             Log.d(TAG, "showStatusBar: showing using system UI flags (API 29)");
-            // Set to visible state - clear all immersive flags
-            decorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_VISIBLE);
+            int flags = decorView.getSystemUiVisibility();
+            flags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
+            decorView.setSystemUiVisibility(flags);
         }
 
-        // Reapply the stored colors and style instead of removing them
+        // Reapply the stored colors and style
         reapplyCurrentStyle(activity);
-
-        // Restore the overlay backgrounds to their original colors
-        restoreStatusBarBackground(activity);
-
-        // Also show the navigation bar
-        showNavigationBar(activity, true);
     }
 
     public void hideStatusBar(Activity activity) {
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
 
-        // Slide mode: Hide status bar and navigation bar completely (current behavior)
-        Log.d(TAG, "hideStatusBar: slide mode - hiding bars completely");
+        Log.d(TAG, "hideStatusBar: hiding status bar");
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             // API 30+ (Android 11+) - Use WindowInsetsController
             WindowInsetsController controller = window.getInsetsController();
             if (controller != null) {
-                Log.d(TAG, "hideStatusBar: hiding system bars (API 30+)");
-                // Hide both status and navigation bars together
-                controller.hide(WindowInsets.Type.systemBars());
-                // Set behavior for immersive mode (user can swipe to reveal temporarily)
+                Log.d(TAG, "hideStatusBar: hiding status bar (API 30+)");
+                controller.hide(WindowInsets.Type.statusBars());
                 controller.setSystemBarsBehavior(
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             } else {
@@ -202,17 +192,15 @@ public class CapacitorStatusBar extends Plugin {
             // API 29 (Android 10) - Use system UI visibility flags (deprecated but
             // necessary)
             Log.d(TAG, "hideStatusBar: hiding using system UI flags (API 29)");
-            // Use immersive sticky mode with proper layout flags for Android 10
             decorView.setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                    decorView.getSystemUiVisibility()
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
                             | View.SYSTEM_UI_FLAG_FULLSCREEN);
         }
 
-        // Make the overlay backgrounds transparent so content shows through
+        // Make the status bar overlay transparent so content shows through
         makeStatusBarBackgroundTransparent(activity);
     }
 
@@ -273,24 +261,6 @@ public class CapacitorStatusBar extends Plugin {
         // which causes the WindowInsetsController to reset setSystemBarsAppearance.
         // Calling setLightStatusBarIcons last ensures the icon style is not overridden.
         setLightStatusBarIcons(window, lightBackground);
-    }
-
-    /**
-     * Set the window background color.
-     *
-     * @param activity The activity to apply the background color to
-     * @param colorHex The hex color string (e.g., "#FFFFFF" or "#FF5733")
-     */
-    public void setBackground(Activity activity, @Nullable String colorHex) {
-        Log.d(TAG, "setBackground: colorHex=" + colorHex);
-
-        if (colorHex == null) {
-            Log.w(TAG, "setBackground: colorHex is null");
-            return;
-        }
-
-        int color = parseColorOrDefault(colorHex, Color.WHITE);
-        applyWindowBackground(activity, color);
     }
 
     /**
@@ -634,12 +604,6 @@ public class CapacitorStatusBar extends Plugin {
         }
     }
 
-    private void applyWindowBackground(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "applyWindowBackground: body is always transparent; status/nav bars use overlays/native APIs");
-        View decorView = activity.getWindow().getDecorView();
-        decorView.setBackgroundColor(Color.TRANSPARENT);
-    }
-
     /**
      * Makes the status bar and navigation bar backgrounds transparent.
      * This allows content to show through when the bars are hidden.
@@ -650,40 +614,17 @@ public class CapacitorStatusBar extends Plugin {
         ViewGroup decorView = (ViewGroup) window.getDecorView();
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // API 31+: edge-to-edge uses overlay views for both bars
+            // API 31+: edge-to-edge uses overlay view for status bar
             View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
             if (statusBarOverlay != null) {
                 statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
                 Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
             }
-            View navBarOverlay = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-            if (navBarOverlay != null) {
-                navBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: nav bar overlay made transparent");
-            }
         } else {
             // API 29–30: no edge-to-edge, native window API
             window.setStatusBarColor(Color.TRANSPARENT);
-            window.setNavigationBarColor(Color.TRANSPARENT);
-            Log.d(TAG, "makeStatusBarBackgroundTransparent: set native bar colors to transparent");
+            Log.d(TAG, "makeStatusBarBackgroundTransparent: set native status bar color to transparent");
         }
-    }
-
-    /**
-     * Restores the status bar and navigation bar backgrounds to their stored
-     * colors.
-     * Called when showing the bars after they were hidden.
-     */
-    private void restoreStatusBarBackground(Activity activity) {
-        Log.d(TAG, "restoreStatusBarBackground: API=" + Build.VERSION.SDK_INT
-                + ", currentStatusBarColor=#" + Integer.toHexString(currentStatusBarColor)
-                + ", currentNavBarColor=#" + Integer.toHexString(currentNavBarColor));
-
-        // Restore all backgrounds to their stored colors
-        applyStatusBarBackground(activity, currentStatusBarColor);
-        applyNavigationBarBackground(activity, currentNavBarColor);
-
-        Log.d(TAG, "restoreStatusBarBackground: backgrounds restored");
     }
 
     @ColorInt

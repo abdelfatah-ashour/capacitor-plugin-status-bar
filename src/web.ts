@@ -4,7 +4,6 @@ import type {
   StatusBarOptions,
   CapacitorStatusBarPlugin,
   StatusBarSetOverlaysWebViewOptions,
-  StatusBarSetBackgroundOptions,
   SafeAreaInsets,
 } from './definitions';
 
@@ -23,10 +22,6 @@ export class CapacitorStatusBarWeb extends WebPlugin implements CapacitorStatusB
 
   async setOverlaysWebView(options: StatusBarSetOverlaysWebViewOptions): Promise<void> {
     console.log('setOverlaysWebView', options);
-  }
-
-  async setBackground(options: StatusBarSetBackgroundOptions): Promise<void> {
-    console.log('setBackground', options);
   }
 
   async showNavigationBar(): Promise<void> {

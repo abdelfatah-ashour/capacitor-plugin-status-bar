@@ -81,23 +81,6 @@ public class CapacitorStatusBarPlugin extends Plugin {
     }
 
     @PluginMethod
-    public void setBackground(PluginCall call) {
-        try {
-            String color = call.getString("color");
-            if (color == null) {
-                call.reject("color is required");
-                return;
-            }
-            getActivity().runOnUiThread(() -> {
-                implementation.setBackground(getActivity(), color);
-                call.resolve();
-            });
-        } catch (Exception e) {
-            call.reject(e.getMessage());
-        }
-    }
-
-    @PluginMethod
     public void showNavigationBar(PluginCall call) {
         try {
             getActivity().runOnUiThread(() -> {

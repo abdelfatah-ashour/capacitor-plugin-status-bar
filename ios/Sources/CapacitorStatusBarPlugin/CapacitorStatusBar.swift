@@ -25,11 +25,14 @@ import Capacitor
         }
     }
 
-    @objc public func setStyle(style: String, colorHex: String?) {
+    @objc public func setStyle(style: String, colorHex: String?, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
+            defer { completion?() }
+
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
             guard let window = windowScene.windows.first else { return }
             guard let statusBarManager = windowScene.statusBarManager else { return }
+            guard let rootVC = window.rootViewController else { return }
 
             let upperStyle = style.uppercased()
             var backgroundColor: UIColor?
@@ -37,33 +40,29 @@ import Capacitor
 
             // Determine the status bar style and background color
             if upperStyle == "LIGHT" {
-                // Light style: light background with dark content
                 statusBarStyle = .darkContent
                 backgroundColor = .white
             } else if upperStyle == "DARK" {
-                // Dark style: dark background with light content
                 statusBarStyle = .lightContent
                 backgroundColor = .black
             } else if upperStyle == "CUSTOM" {
-                // Custom style: use provided color and determine content style based on brightness
                 if let colorHex = colorHex, let color = self.colorFromHex(colorHex) {
                     backgroundColor = color
                     let brightness = self.getColorBrightness(color)
-                    // If background is light, use dark content; if dark, use light content
                     statusBarStyle = brightness > 0.5 ? .darkContent : .lightContent
                 } else {
-                    // No color provided, use system default
                     statusBarStyle = .default
                     backgroundColor = nil
                 }
             } else {
-                // Default: use system default
                 statusBarStyle = .default
                 backgroundColor = nil
             }
 
-            // Set the status bar style using KVC to avoid deprecation warnings
-            UIApplication.shared.setValue(statusBarStyle.rawValue, forKey: "statusBarStyle")
+            // Set the status bar style via swizzled preferredStatusBarStyle
+            CapacitorStatusBar.swizzleStatusBarStyleIfNeeded()
+            CapacitorStatusBar.currentStatusBarStyle = statusBarStyle
+            rootVC.setNeedsStatusBarAppearanceUpdate()
 
             // Store the background color for later restoration
             self.currentBackgroundColor = backgroundColor
@@ -72,7 +71,6 @@ import Capacitor
             if self.isOverlayMode {
                 print("CapacitorStatusBar: setStyle - overlay mode active, skipping background color")
             } else {
-                // Create or update the status bar background view
                 self.updateStatusBarBackgroundView(in: window,
                                                    height: statusBarManager.statusBarFrame.height,
                                                    color: backgroundColor)
@@ -82,29 +80,28 @@ import Capacitor
         }
     }
 
-    @objc public func show(animated: Bool) {
+    @objc public func show(animated: Bool, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
-            // Note: Status bar visibility is controlled through view controllers in modern iOS.
-            // This plugin requires UIViewControllerBasedStatusBarAppearance to be set to NO
-            // in the app's Info.plist for programmatic show/hide to work.
+            defer { completion?() }
 
-            // Log current status bar state via status bar manager
-            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-               let statusBarManager = windowScene.statusBarManager {
+            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                  let window = windowScene.windows.first,
+                  let rootVC = window.rootViewController else { return }
+
+            if let statusBarManager = windowScene.statusBarManager {
                 print("CapacitorStatusBar: show() - Current hidden state: \(statusBarManager.isStatusBarHidden)")
             }
 
-            // Set visibility using the application-level API
-            // Note: This requires UIViewControllerBasedStatusBarAppearance = NO
-            self.setStatusBarVisibility(hidden: false, animated: animated)
+            // Show status bar via swizzled prefersStatusBarHidden
+            CapacitorStatusBar.swizzleStatusBarVisibilityIfNeeded()
+            CapacitorStatusBar.currentStatusBarHidden = false
+            rootVC.setNeedsStatusBarAppearanceUpdate()
 
             // Restore the background view color when showing (unless overlay mode is active)
             if !self.isOverlayMode {
                 self.restoreStatusBarBackgroundColor()
             }
 
-            // Also show the navigation bar (home indicator)
-            self.showNavigationBar(animated: animated)
             self.updateWebViewLayout()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.updateWebViewLayout()
@@ -112,36 +109,38 @@ import Capacitor
         }
     }
 
-    @objc public func hide(animation: String) {
+    @objc public func hide(animation: String, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
+            defer { completion?() }
+
             let animationType = animation.lowercased()
 
-            // Log current status bar state via status bar manager
             if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                let statusBarManager = windowScene.statusBarManager {
                 print("CapacitorStatusBar: hide() - animation=\(animationType), Current hidden state: \(statusBarManager.isStatusBarHidden)")
             }
 
             if animationType == "fade" {
-                // Fade mode: Make background transparent without removing status bar
+                // Fade mode: Make background transparent without hiding status bar
                 print("CapacitorStatusBar: hide() - fade mode: making background transparent")
                 self.makeStatusBarBackgroundTransparent()
-                self.hideNavigationBar(animation: "fade")
-            } else if animationType == "slide" {
-                // Slide mode: Hide the status bar completely (current behavior)
-                print("CapacitorStatusBar: hide() - slide mode: hiding bars completely")
-                // Note: Status bar visibility is controlled through view controllers in modern iOS.
-                // This plugin requires UIViewControllerBasedStatusBarAppearance to be set to NO
-                // in the app's Info.plist for programmatic show/hide to work.
-                self.setStatusBarVisibility(hidden: true, animated: true)
-                // Also make the background view transparent when hiding
-                self.makeStatusBarBackgroundTransparent()
-                self.hideNavigationBar(animation: "slide")
             } else {
-                print("CapacitorStatusBar: hide() - unknown animation type '\(animationType)', defaulting to slide")
-                self.setStatusBarVisibility(hidden: true, animated: true)
+                // Slide mode (default): Hide the status bar completely
+                if animationType != "slide" {
+                    print("CapacitorStatusBar: hide() - unknown animation '\(animationType)', defaulting to slide")
+                } else {
+                    print("CapacitorStatusBar: hide() - slide mode: hiding status bar")
+                }
+
+                guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                      let window = windowScene.windows.first,
+                      let rootVC = window.rootViewController else { return }
+
+                CapacitorStatusBar.swizzleStatusBarVisibilityIfNeeded()
+                CapacitorStatusBar.currentStatusBarHidden = true
+                rootVC.setNeedsStatusBarAppearanceUpdate()
+
                 self.makeStatusBarBackgroundTransparent()
-                self.hideNavigationBar(animation: "slide")
             }
 
             self.updateWebViewLayout()
@@ -152,16 +151,6 @@ import Capacitor
     }
 
     // MARK: - Private Methods
-
-    /// Sets the status bar visibility.
-    /// - Parameters:
-    ///   - hidden: Whether the status bar should be hidden
-    ///   - animated: Whether the change should be animated
-    private func setStatusBarVisibility(hidden: Bool, animated: Bool) {
-        // Use KVC to set status bar state without triggering deprecation warnings
-        // This approach is necessary when UIViewControllerBasedStatusBarAppearance is NO
-        UIApplication.shared.setValue(hidden, forKey: "statusBarHidden")
-    }
 
     /// Updates or creates the status bar background view with the specified color.
     /// - Parameters:
@@ -197,8 +186,10 @@ import Capacitor
         }
     }
 
-    @objc public func setOverlaysWebView(value: Bool) {
+    @objc public func setOverlaysWebView(value: Bool, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
+            defer { completion?() }
+
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first,
                   let statusBarManager = windowScene.statusBarManager else {
@@ -209,19 +200,16 @@ import Capacitor
             self.isOverlayMode = value
 
             if value {
-                // Overlay mode: make the status bar background transparent so web content shows through
                 let statusBarView = window.viewWithTag(CapacitorStatusBar.statusBarViewTag)
                 statusBarView?.backgroundColor = .clear
                 print("CapacitorStatusBar: setOverlaysWebView(true) - content extends behind status bar")
             } else {
-                // Non-overlay mode: restore the status bar background from the current style
                 if let color = self.currentBackgroundColor {
                     self.updateStatusBarBackgroundView(in: window,
                                                        height: statusBarManager.statusBarFrame.height,
                                                        color: color)
                     print("CapacitorStatusBar: setOverlaysWebView(false) - restored background color")
                 } else {
-                    // No style was set; apply default style based on system theme
                     self.applyDefaultStyle()
                     print("CapacitorStatusBar: setOverlaysWebView(false) - applied default style from config")
                 }
@@ -231,24 +219,6 @@ import Capacitor
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                 self.updateWebViewLayout()
             }
-        }
-    }
-
-    @objc public func setBackground(colorHex: String?) {
-        DispatchQueue.main.async {
-            guard let colorHex = colorHex, let color = self.colorFromHex(colorHex) else {
-                print("CapacitorStatusBar: setBackground - Invalid color or nil")
-                return
-            }
-
-            guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                  let window = windowScene.windows.first else {
-                print("CapacitorStatusBar: setBackground - Unable to get window")
-                return
-            }
-
-            window.backgroundColor = .clear
-            print("CapacitorStatusBar: setBackground - Body is always transparent; status/nav bars use overlays/native APIs")
         }
     }
 
@@ -282,8 +252,10 @@ import Capacitor
     /// Shared flag read by the swizzled `prefersHomeIndicatorAutoHidden` override.
     static var homeIndicatorHidden = false
 
-    @objc public func showNavigationBar(animated: Bool) {
+    @objc public func showNavigationBar(animated: Bool, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
+            defer { completion?() }
+
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first,
                   let rootVC = window.rootViewController else {
@@ -303,8 +275,10 @@ import Capacitor
         }
     }
 
-    @objc public func hideNavigationBar(animation: String) {
+    @objc public func hideNavigationBar(animation: String, completion: (() -> Void)? = nil) {
         DispatchQueue.main.async {
+            defer { completion?() }
+
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                   let window = windowScene.windows.first,
                   let rootVC = window.rootViewController else {
@@ -325,21 +299,75 @@ import Capacitor
         }
     }
 
-    // MARK: - Home Indicator Swizzling
+    // MARK: - Swizzling
 
-    private static var hasSwizzled = false
+    private static var hasSwizzledHomeIndicator = false
+    private static var hasSwizzledStatusBarStyle = false
+    private static var hasSwizzledStatusBarVisibility = false
+
+    /// Current status bar style, read by the swizzled `preferredStatusBarStyle` override.
+    static var currentStatusBarStyle: UIStatusBarStyle = .default
+
+    /// Current status bar hidden state, read by the swizzled `prefersStatusBarHidden` override.
+    static var currentStatusBarHidden = false
+
+    /// Swizzle `preferredStatusBarStyle` so we can control status bar appearance
+    /// without using private KVC APIs. Requires UIViewControllerBasedStatusBarAppearance = YES (default).
+    static func swizzleStatusBarStyleIfNeeded() {
+        guard !hasSwizzledStatusBarStyle else { return }
+        hasSwizzledStatusBarStyle = true
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else { return }
+
+        let vcClass: AnyClass = type(of: rootVC)
+        let originalSelector = #selector(getter: UIViewController.preferredStatusBarStyle)
+        let swizzledSelector = #selector(UIViewController.capsb_preferredStatusBarStyle)
+
+        guard let originalMethod = class_getInstanceMethod(vcClass, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIViewController.self, swizzledSelector) else {
+            print("CapacitorStatusBar: Failed to swizzle preferredStatusBarStyle")
+            return
+        }
+
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+        print("CapacitorStatusBar: Swizzled preferredStatusBarStyle on \(vcClass)")
+    }
+
+    /// Swizzle `prefersStatusBarHidden` so we can control status bar visibility
+    /// without using private KVC APIs. Requires UIViewControllerBasedStatusBarAppearance = YES (default).
+    static func swizzleStatusBarVisibilityIfNeeded() {
+        guard !hasSwizzledStatusBarVisibility else { return }
+        hasSwizzledStatusBarVisibility = true
+
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first,
+              let rootVC = window.rootViewController else { return }
+
+        let vcClass: AnyClass = type(of: rootVC)
+        let originalSelector = #selector(getter: UIViewController.prefersStatusBarHidden)
+        let swizzledSelector = #selector(UIViewController.capsb_prefersStatusBarHidden)
+
+        guard let originalMethod = class_getInstanceMethod(vcClass, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIViewController.self, swizzledSelector) else {
+            print("CapacitorStatusBar: Failed to swizzle prefersStatusBarHidden")
+            return
+        }
+
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+        print("CapacitorStatusBar: Swizzled prefersStatusBarHidden on \(vcClass)")
+    }
 
     /// Swizzle `prefersHomeIndicatorAutoHidden` on the root view controller so we
     /// can control the home indicator visibility from the plugin.
     static func swizzleHomeIndicatorIfNeeded() {
-        guard !hasSwizzled else { return }
-        hasSwizzled = true
+        guard !hasSwizzledHomeIndicator else { return }
+        hasSwizzledHomeIndicator = true
 
         guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
               let window = windowScene.windows.first,
-              let rootVC = window.rootViewController else {
-            return
-        }
+              let rootVC = window.rootViewController else { return }
 
         let vcClass: AnyClass = type(of: rootVC)
         let originalSelector = #selector(getter: UIViewController.prefersHomeIndicatorAutoHidden)
@@ -474,6 +502,14 @@ import Capacitor
 // MARK: - UIViewController extension for home indicator swizzling
 
 extension UIViewController {
+    @objc func capsb_preferredStatusBarStyle() -> UIStatusBarStyle {
+        return CapacitorStatusBar.currentStatusBarStyle
+    }
+
+    @objc func capsb_prefersStatusBarHidden() -> Bool {
+        return CapacitorStatusBar.currentStatusBarHidden
+    }
+
     @objc func capsb_prefersHomeIndicatorAutoHidden() -> Bool {
         return CapacitorStatusBar.homeIndicatorHidden
     }

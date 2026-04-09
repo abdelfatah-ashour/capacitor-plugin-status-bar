@@ -37,7 +37,6 @@ No additional configuration required. The plugin works out of the box on Android
 * [`show()`](#show)
 * [`hide()`](#hide)
 * [`setOverlaysWebView(...)`](#setoverlayswebview)
-* [`setBackground(...)`](#setbackground)
 * [`showNavigationBar()`](#shownavigationbar)
 * [`hideNavigationBar()`](#hidenavigationbar)
 * [`getSafeAreaInsets()`](#getsafeareainsets)
@@ -104,21 +103,6 @@ Set whether the status bar overlays the web view.
 | Param         | Type                                                                                              | Description                                            |
 | ------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
 | **`options`** | <code><a href="#statusbarsetoverlayswebviewoptions">StatusBarSetOverlaysWebViewOptions</a></code> | - The options to set the status bar overlays web view. |
-
---------------------
-
-
-### setBackground(...)
-
-```typescript
-setBackground(options: StatusBarSetBackgroundOptions) => Promise<void>
-```
-
-Set the window background color.
-
-| Param         | Type                                                                                    | Description                                       |
-| ------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------- |
-| **`options`** | <code><a href="#statusbarsetbackgroundoptions">StatusBarSetBackgroundOptions</a></code> | - The options to set the window background color. |
 
 --------------------
 
@@ -192,11 +176,6 @@ Note: Short 3-digit format (#FFF) is NOT supported.
 #### StatusBarSetOverlaysWebViewOptions
 
 <code>{ value: boolean; }</code>
-
-
-#### StatusBarSetBackgroundOptions
-
-<code>{ color: <a href="#statusbarcolor">StatusBarColor</a>; }</code>
 
 
 #### SafeAreaInsets

@@ -23,6 +23,7 @@ public class CapacitorStatusBarPlugin: CAPPlugin, CAPBridgedPlugin {
 
     override public func load() {
         super.load()
+        implementation.setWebView(bridge?.webView)
         // Apply default style based on system theme on plugin load
         implementation.applyDefaultStyle()
     }

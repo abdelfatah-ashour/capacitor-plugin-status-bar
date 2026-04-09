@@ -9,6 +9,12 @@ import Capacitor
     private var currentBackgroundColor: UIColor?
     // Track whether overlays web view mode is active
     private var isOverlayMode = false
+    // Keep a weak reference to the Capacitor WKWebView for layout updates
+    private weak var webView: UIView?
+
+    @objc public func setWebView(_ webView: UIView?) {
+        self.webView = webView
+    }
 
     @objc public func applyDefaultStyle() {
         DispatchQueue.main.async {
@@ -99,6 +105,10 @@ import Capacitor
 
             // Also show the navigation bar (home indicator)
             self.showNavigationBar(animated: animated)
+            self.updateWebViewLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateWebViewLayout()
+            }
         }
     }
 
@@ -132,6 +142,11 @@ import Capacitor
                 self.setStatusBarVisibility(hidden: true, animated: true)
                 self.makeStatusBarBackgroundTransparent()
                 self.hideNavigationBar(animation: "slide")
+            }
+
+            self.updateWebViewLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateWebViewLayout()
             }
         }
     }
@@ -211,6 +226,11 @@ import Capacitor
                     print("CapacitorStatusBar: setOverlaysWebView(false) - applied default style from config")
                 }
             }
+
+            self.updateWebViewLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateWebViewLayout()
+            }
         }
     }
 
@@ -276,6 +296,10 @@ import Capacitor
             rootVC.setNeedsUpdateOfHomeIndicatorAutoHidden()
 
             print("CapacitorStatusBar: showNavigationBar - animated=\(animated)")
+            self.updateWebViewLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateWebViewLayout()
+            }
         }
     }
 
@@ -294,6 +318,10 @@ import Capacitor
             rootVC.setNeedsUpdateOfHomeIndicatorAutoHidden()
 
             print("CapacitorStatusBar: hideNavigationBar - animation=\(animationType)")
+            self.updateWebViewLayout()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                self.updateWebViewLayout()
+            }
         }
     }
 
@@ -337,6 +365,37 @@ import Capacitor
 
         statusBarView.backgroundColor = .clear
         print("CapacitorStatusBar: Made background transparent")
+    }
+
+    /// Updates WebView frame to respect overlay mode behavior.
+    /// - overlay mode true: content extends edge-to-edge (no reserved top/bottom)
+    /// - overlay mode false: content is inset away from status/home-indicator areas
+    private func updateWebViewLayout() {
+        guard let webView = self.webView else {
+            print("CapacitorStatusBar: updateWebViewLayout - WebView unavailable")
+            return
+        }
+
+        guard let window = webView.window
+                ?? (UIApplication.shared.connectedScenes.first as? UIWindowScene)?
+                    .windows.first(where: { $0.isKeyWindow })
+                ?? (UIApplication.shared.connectedScenes.first as? UIWindowScene)?.windows.first else {
+            print("CapacitorStatusBar: updateWebViewLayout - Unable to resolve window")
+            return
+        }
+
+        let safeAreaInsets = window.safeAreaInsets
+        let topInset: CGFloat = isOverlayMode ? 0 : sanitizedInsetValue(safeAreaInsets.top)
+        let bottomInset: CGFloat = isOverlayMode ? 0 : sanitizedInsetValue(safeAreaInsets.bottom)
+
+        var frame = window.bounds
+        frame.origin.y = topInset
+        frame.size.height = max(0, frame.size.height - topInset - bottomInset)
+
+        if webView.frame != frame {
+            webView.frame = frame
+            print("CapacitorStatusBar: updateWebViewLayout - topInset=\(topInset), bottomInset=\(bottomInset), frame=\(frame)")
+        }
     }
 
     /// Restores the status bar background view to its original color

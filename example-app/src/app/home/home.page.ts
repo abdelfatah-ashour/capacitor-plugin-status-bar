@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider } from '@ionic/angular/standalone';
+import { IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider, IonFooter } from '@ionic/angular/standalone';
 import { FormsModule } from '@angular/forms';
 import { CapacitorStatusBar, Style, StatusBarColor } from "capacitor-plugin-status-bar";
 import {SafeAreaInsets} from "capacitor-plugin-status-bar";
@@ -10,7 +10,7 @@ import { JsonPipe } from '@angular/common';
   selector: 'app-home',
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider, FormsModule, JsonPipe],
+  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonButton, IonItem, IonList, IonInput, IonToggle, IonLabel, IonSegment, IonSegmentButton, IonItemGroup, IonItemDivider, FormsModule, JsonPipe, IonFooter],
 })
 export class HomePage implements OnInit {
   private router = inject(Router);

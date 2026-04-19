@@ -4,13 +4,14 @@ import android.app.Activity;
 import android.graphics.Color;
 import android.os.Build;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
-import android.view.Gravity;
 
 import androidx.annotation.ColorInt;
 import androidx.annotation.Nullable;
@@ -18,49 +19,56 @@ import androidx.core.graphics.ColorUtils;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.Plugin;
 
-/**
- * Android Status Bar utilities with Android 10-15+ (API 29-35+) support.
- * Supports:
- * - API 29 (Android 10): Uses deprecated SYSTEM_UI_FLAG for backward
- * compatibility
- * - API 30+ (Android 11+): Uses modern WindowInsetsController API
- * - API 35+ (Android 15+): Fully compatible with edge-to-edge display
- * enforcement
- */
 public class CapacitorStatusBar extends Plugin {
     private static final String TAG = "CapacitorStatusBar";
     private static final String STATUS_BAR_OVERLAY_TAG = "capacitor_status_bar_overlay";
     private static final String NAV_BAR_OVERLAY_TAG = "capacitor_navigation_bar_overlay";
 
-    // Store current state to preserve colors when hiding/showing
     private String currentStyle = "LIGHT";
     private String currentColorHex = null;
     private int currentStatusBarColor = Color.BLACK;
     private int currentNavBarColor = Color.BLACK;
+    private boolean statusBarHidden = false;
+    private boolean navBarHidden = false;
 
-    // Note: load() is not called since CapacitorStatusBar is instantiated via new
-    // CapacitorStatusBar()
-    // from CapacitorStatusBarPlugin, not registered as a Capacitor plugin itself.
-    // All initialization happens via ensureEdgeToEdgeConfigured() called from
-    // CapacitorStatusBarPlugin.load().
+    private boolean isAndroid15OrAbove() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM;
+    }
+
+    private boolean supportsInsetsController() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.R;
+    }
+
+    private boolean supportsContrastControl() {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q;
+    }
+
+    private void applyLegacyContrastPolicy(Window window) {
+        if (!isAndroid15OrAbove() && supportsContrastControl()) {
+            window.setStatusBarContrastEnforced(false);
+            window.setNavigationBarContrastEnforced(false);
+        }
+    }
 
     /**
-     * Ensures edge-to-edge is properly configured for Android 12+.
-     * Sets up a unified insets listener on the decorView that handles
-     * overlay view sizing and WebView padding so content stays within
-     * the safe area.
-     *
-     * @param activity The activity to configure
-     * @param webView  The Capacitor WebView to apply safe-area padding to (may be null)
+     * Configure layout behavior for the current API level. Called once from
+     * CapacitorStatusBarPlugin.load().
      */
     public void ensureEdgeToEdgeConfigured(Activity activity, @Nullable View webView) {
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
+        configureWebview(window, decorView);
+    }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    private void configureWebview(Window window, View decorView) {
+        if (isAndroid15OrAbove()) {
+
+            // Android 15+: edge-to-edge. Overlay views paint the bar regions;
+            // JS gets real insets.
             WindowCompat.setDecorFitsSystemWindows(window, false);
 
             window.setStatusBarColor(Color.TRANSPARENT);
@@ -73,19 +81,15 @@ public class CapacitorStatusBar extends Plugin {
                 int navBottom = insets.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
                 boolean imeVisible = insets.isVisible(WindowInsetsCompat.Type.ime());
 
-                // Size status bar overlay
                 View statusOverlay = ((ViewGroup) v).findViewWithTag(STATUS_BAR_OVERLAY_TAG);
                 if (statusOverlay != null) {
                     ViewGroup.LayoutParams params = statusOverlay.getLayoutParams();
                     if (params.height != top) {
                         params.height = top;
                         statusOverlay.setLayoutParams(params);
-                        Log.d(TAG, "insetsListener: status bar overlay height=" + top);
                     }
                 }
 
-                // Size navigation bar overlay — collapse it when the keyboard is
-                // open since the nav bar is hidden behind the IME.
                 int overlayBottom = imeVisible ? 0 : navBottom;
                 View navOverlay = ((ViewGroup) v).findViewWithTag(NAV_BAR_OVERLAY_TAG);
                 if (navOverlay != null) {
@@ -93,31 +97,6 @@ public class CapacitorStatusBar extends Plugin {
                     if (params.height != overlayBottom) {
                         params.height = overlayBottom;
                         navOverlay.setLayoutParams(params);
-                        Log.d(TAG, "insetsListener: nav bar overlay height=" + overlayBottom
-                                + " (imeVisible=" + imeVisible + ")");
-                    }
-                }
-
-                // Inset the WebView via layout margins so it never renders behind
-                // system bars. When the keyboard is open the nav bar is behind the
-                // IME, so drop the bottom margin to avoid a gap above the keyboard.
-                if (webView != null
-                        && webView.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
-                    ViewGroup.MarginLayoutParams mlp =
-                            (ViewGroup.MarginLayoutParams) webView.getLayoutParams();
-                    int left = insets.getInsets(WindowInsetsCompat.Type.systemBars()).left;
-                    int right = insets.getInsets(WindowInsetsCompat.Type.systemBars()).right;
-                    int bottomMargin = imeVisible ? 0 : navBottom;
-                    if (mlp.topMargin != top || mlp.bottomMargin != bottomMargin
-                            || mlp.leftMargin != left || mlp.rightMargin != right) {
-                        mlp.topMargin = top;
-                        mlp.bottomMargin = bottomMargin;
-                        mlp.leftMargin = left;
-                        mlp.rightMargin = right;
-                        webView.setLayoutParams(mlp);
-                        Log.d(TAG, "insetsListener: webView margins t=" + top
-                                + " b=" + bottomMargin + " l=" + left + " r=" + right
-                                + " (imeVisible=" + imeVisible + ")");
                     }
                 }
 
@@ -125,192 +104,250 @@ public class CapacitorStatusBar extends Plugin {
             });
 
             decorView.requestApplyInsets();
-            Log.d(TAG, "ensureEdgeToEdgeConfigured: edge-to-edge with overlay views, API=" + Build.VERSION.SDK_INT);
+            Log.d(TAG, "ensureEdgeToEdgeConfigured: edge-to-edge (API " + Build.VERSION.SDK_INT + ")");
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                window.setStatusBarContrastEnforced(false);
-                window.setNavigationBarContrastEnforced(false);
-            }
+            // API < 35: keep WebView inside the safe area. System draws bars.
+            WindowCompat.setDecorFitsSystemWindows(window, true);
 
-            Log.d(TAG, "ensureEdgeToEdgeConfigured: contrast enforcement disabled only, API=" + Build.VERSION.SDK_INT);
+            // Ensure the system draws bar backgrounds with the colors we set
+            // (not a translucent scrim).
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+
+            applyLegacyContrastPolicy(window);
+            Log.d(TAG, "ensureEdgeToEdgeConfigured: fitted layout (API " + Build.VERSION.SDK_INT + ")");
         }
     }
 
+    private void configureAndroid14OrBelow(Window window) {
+        // API < 35: keep WebView inside the safe area. System draws bars.
+        WindowCompat.setDecorFitsSystemWindows(window, true);
+
+        // Ensure the system draws bar backgrounds with the colors we set
+        // (not a translucent scrim).
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+
+        applyLegacyContrastPolicy(window);
+        Log.d(TAG, "ensureEdgeToEdgeConfigured: fitted layout (API " + Build.VERSION.SDK_INT + ")");
+    }
+
     public void setOverlaysWebView(Activity activity, boolean overlay) {
-        // No-op on Android. Exposed for API parity with iOS.
         Log.d(TAG, "setOverlaysWebView: no-op on Android, overlay=" + overlay);
     }
 
     public void showStatusBar(Activity activity, boolean animated) {
-        Log.d(TAG, "showStatusBar: animated=" + animated + ", currentStyle=" + currentStyle + ", API="
-                + Build.VERSION.SDK_INT);
+        Log.d(TAG, "showStatusBar: animated=" + animated + ", API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
+        statusBarHidden = false;
+        navBarHidden = false;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+ (Android 11+) - Use WindowInsetsController
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                Log.d(TAG, "showStatusBar: showing status bar (API 30+)");
-                controller.show(WindowInsets.Type.statusBars());
-                controller.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            } else {
-                Log.w(TAG, "showStatusBar: WindowInsetsController is null");
-            }
-        } else {
-            // API 29 (Android 10) - Use system UI visibility flags (deprecated but
-            // necessary)
-            Log.d(TAG, "showStatusBar: showing using system UI flags (API 29)");
-            int flags = decorView.getSystemUiVisibility();
-            flags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
-            decorView.setSystemUiVisibility(flags);
+        if (!isAndroid15OrAbove()) {
+            WindowCompat.setDecorFitsSystemWindows(window, true);
         }
 
-        // Reapply the stored colors and style
+        // Clear fullscreen flag so bars can appear again.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decorView);
+        controller.show(WindowInsetsCompat.Type.statusBars());
+        controller.show(WindowInsetsCompat.Type.navigationBars());
+
+        // Restore overlays so colors reappear on both legacy and edge-to-edge.
+        ViewGroup dv = (ViewGroup) decorView;
+        View statusOverlay = dv.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+        if (statusOverlay != null) {
+            statusOverlay.setVisibility(View.VISIBLE);
+        }
+        View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+        if (navOverlay != null) {
+            navOverlay.setVisibility(View.VISIBLE);
+        }
+
         reapplyCurrentStyle(activity);
     }
 
     public void hideStatusBar(Activity activity) {
+        Log.d(TAG, "hideStatusBar: API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
+        statusBarHidden = true;
+        navBarHidden = true;
 
-        Log.d(TAG, "hideStatusBar: hiding status bar");
+        // Edge-to-edge so the WebView extends into the freed bar regions.
+        WindowCompat.setDecorFitsSystemWindows(window, false);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+ (Android 11+) - Use WindowInsetsController
-            WindowInsetsController controller = window.getInsetsController();
-            if (controller != null) {
-                Log.d(TAG, "hideStatusBar: hiding status bar (API 30+)");
-                controller.hide(WindowInsets.Type.statusBars());
-                controller.setSystemBarsBehavior(
-                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            } else {
-                Log.w(TAG, "hideStatusBar: WindowInsetsController is null");
-            }
-        } else {
-            // API 29 (Android 10) - Use system UI visibility flags (deprecated but
-            // necessary)
-            Log.d(TAG, "hideStatusBar: hiding using system UI flags (API 29)");
+        // Clear flags that can block the bars from hiding.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+
+        ViewGroup dv = (ViewGroup) decorView;
+        View statusOverlay = dv.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
+        if (statusOverlay != null) {
+            statusOverlay.setVisibility(View.GONE);
+        }
+        View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+        if (navOverlay != null) {
+            navOverlay.setVisibility(View.GONE);
+        }
+
+        hideSystemBarsNow(window, decorView);
+
+        window.setStatusBarColor(Color.TRANSPARENT);
+        window.setNavigationBarColor(Color.TRANSPARENT);
+
+        // Re-apply on next frame to beat any post-layout reapplication from
+        // the framework or other plugins that may re-show bars.
+        decorView.post(() -> hideSystemBarsNow(window, decorView));
+    }
+
+    private void hideSystemBarsNow(Window window, View decorView) {
+        WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(window, decorView);
+        controller.setSystemBarsBehavior(
+                WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+        controller.hide(WindowInsetsCompat.Type.statusBars());
+        controller.hide(WindowInsetsCompat.Type.navigationBars());
+
+        // Belt-and-suspenders: on API 30–34, set FLAG_FULLSCREEN as a fallback
+        // in case the controller call is ignored by theme/manifest state.
+        if (!isAndroid15OrAbove()) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
+
+        // Legacy path (API < 30): also toggle system UI visibility flags.
+        if (!supportsInsetsController()) {
             decorView.setSystemUiVisibility(
                     decorView.getSystemUiVisibility()
                             | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE
                             | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN);
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION);
         }
-
-        // Make the status bar overlay transparent so content shows through
-        makeStatusBarBackgroundTransparent(activity);
     }
 
     public void setStyle(Activity activity, String style, @Nullable String colorHex) {
         Log.d(TAG, "setStyle: style=" + style + ", colorHex=" + colorHex);
         Window window = activity.getWindow();
 
-        // Store the current style and color for later reapplication
+        if (!isAndroid15OrAbove()) {
+            statusBarHidden = false;
+            navBarHidden = false;
+            ensureLegacyOpaqueSystemBars(window);
+        }
+
         currentStyle = style;
         currentColorHex = colorHex;
 
-        // Determine icon appearance based on style
         boolean lightBackground;
-        if ("LIGHT".equalsIgnoreCase(style)) {
+        int statusBarColor;
+        int navBarColor;
+
+        if ("CUSTOM".equalsIgnoreCase(style) && colorHex != null) {
+            int color = parseColorOrDefault(colorHex, Color.BLACK);
+            lightBackground = isEffectiveLightColor(color);
+            statusBarColor = color;
+            navBarColor = color;
+        } else if ("LIGHT".equalsIgnoreCase(style)) {
             lightBackground = true;
+            statusBarColor = Color.WHITE;
+            navBarColor = Color.WHITE;
         } else if ("DARK".equalsIgnoreCase(style)) {
             lightBackground = false;
-        } else if ("CUSTOM".equalsIgnoreCase(style)) {
-            // CUSTOM: Derive icon color from provided custom color
-            int parsed = parseColorOrDefault(colorHex, Color.BLACK);
-            lightBackground = isEffectiveLightColor(parsed);
+            statusBarColor = Color.BLACK;
+            navBarColor = Color.BLACK;
         } else {
-            // Default: Auto-detect based on system theme (follow device theme)
             boolean isSystemDarkMode = isSystemInDarkMode(activity);
             lightBackground = !isSystemDarkMode;
+            statusBarColor = isSystemDarkMode ? Color.BLACK : Color.WHITE;
+            navBarColor = statusBarColor;
         }
 
-        // Apply background colors first
-        if ("CUSTOM".equalsIgnoreCase(style) && colorHex != null) {
-            int color = parseColorOrDefault(colorHex, lightBackground ? Color.WHITE : Color.BLACK);
-            currentStatusBarColor = color;
-            currentNavBarColor = color;
-            applyStatusBarBackground(activity, color);
-            applyNavigationBarBackground(activity, color);
-        } else if ("LIGHT".equalsIgnoreCase(style)) {
-            currentStatusBarColor = Color.WHITE;
-            currentNavBarColor = Color.WHITE;
-            applyStatusBarBackground(activity, Color.WHITE);
-            applyNavigationBarBackground(activity, Color.WHITE);
-        } else if ("DARK".equalsIgnoreCase(style)) {
-            currentStatusBarColor = Color.BLACK;
-            currentNavBarColor = Color.BLACK;
-            applyStatusBarBackground(activity, Color.BLACK);
-            applyNavigationBarBackground(activity, Color.BLACK);
-        } else {
-            // Default: Auto-detect based on system theme
-            boolean isSystemDarkMode = isSystemInDarkMode(activity);
-            int themeColor = isSystemDarkMode ? Color.BLACK : Color.WHITE;
-            currentStatusBarColor = themeColor;
-            currentNavBarColor = themeColor;
-            applyStatusBarBackground(activity, themeColor);
-            applyNavigationBarBackground(activity, themeColor);
+        currentStatusBarColor = statusBarColor;
+        currentNavBarColor = navBarColor;
+
+        if (!isAndroid15OrAbove()) {
+            // Clear any translucent scrim the framework/theme may have applied,
+            // and ensure the system draws bar backgrounds with our colors.
+            window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                    | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
         }
 
-        // Set icon appearance AFTER background operations.
-        // On Android 13 (API 33), applyStatusBarBackground triggers
-        // requestApplyInsets()
-        // which causes the WindowInsetsController to reset setSystemBarsAppearance.
-        // Calling setLightStatusBarIcons last ensures the icon style is not overridden.
+        applyLegacyContrastPolicy(window);
         setLightStatusBarIcons(window, lightBackground);
+        applyStatusBarBackground(activity, statusBarColor);
+        applyNavigationBarBackground(activity, navBarColor);
+
+        applyLegacyContrastPolicy(window);
+
+        if (!isAndroid15OrAbove()) {
+            // Re-apply on the next frame to win against same-tick framework/plugin updates.
+            window.getDecorView().post(() -> {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                        | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+                window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                applyLegacyContrastPolicy(window);
+                window.setStatusBarColor(statusBarColor);
+                window.setNavigationBarColor(navBarColor);
+                setLightStatusBarIcons(window, lightBackground);
+            });
+        }
     }
 
-    /**
-     * Get the safe area insets.
-     * Returns the insets for status bar, navigation bar, and notch areas.
-     *
-     * @param activity The activity to get the insets from
-     * @return A map containing top, bottom, left, and right inset values in dp
-     *         (density-independent pixels)
-     */
     public java.util.Map<String, Integer> getSafeAreaInsets(Activity activity) {
-        Log.d(TAG, "getSafeAreaInsets");
         java.util.Map<String, Integer> insets = new java.util.HashMap<>();
         float density = activity.getResources().getDisplayMetrics().density;
-
         View decorView = activity.getWindow().getDecorView();
         WindowInsetsCompat windowInsets = ViewCompat.getRootWindowInsets(decorView);
 
-        if (windowInsets != null) {
-            // Use WindowInsetsCompat for accurate, type-specific insets across all API
-            // levels
-            androidx.core.graphics.Insets statusBars = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
-            androidx.core.graphics.Insets navBars = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
-            androidx.core.graphics.Insets displayCutout = windowInsets
-                    .getInsets(WindowInsetsCompat.Type.displayCutout());
-
-            int topPx = Math.max(statusBars.top, displayCutout.top);
-            int bottomPx = Math.max(navBars.bottom, displayCutout.bottom);
-            int leftPx = Math.max(navBars.left, displayCutout.left);
-            int rightPx = Math.max(navBars.right, displayCutout.right);
-
-            // Convert physical pixels to dp (CSS pixels) for the WebView layer
-            insets.put("top", Math.round(topPx / density));
-            insets.put("bottom", Math.round(bottomPx / density));
-            insets.put("left", Math.round(leftPx / density));
-            insets.put("right", Math.round(rightPx / density));
-
-            Log.d(TAG, "getSafeAreaInsets: topPx=" + topPx + " bottomPx=" + bottomPx
-                    + " density=" + density
-                    + " -> top=" + insets.get("top") + "dp"
-                    + " bottom=" + insets.get("bottom") + "dp"
-                    + " left=" + insets.get("left") + "dp"
-                    + " right=" + insets.get("right") + "dp");
-        } else {
+        if (windowInsets == null) {
             insets.put("top", 0);
             insets.put("bottom", 0);
             insets.put("left", 0);
             insets.put("right", 0);
             Log.w(TAG, "getSafeAreaInsets: windowInsets is null");
+            return insets;
         }
+
+        androidx.core.graphics.Insets statusBars = windowInsets
+                .getInsetsIgnoringVisibility(WindowInsetsCompat.Type.statusBars());
+        androidx.core.graphics.Insets navBars = windowInsets
+                .getInsetsIgnoringVisibility(WindowInsetsCompat.Type.navigationBars());
+        androidx.core.graphics.Insets displayCutout = windowInsets.getInsets(WindowInsetsCompat.Type.displayCutout());
+
+        int topPx;
+        int bottomPx;
+        int leftPx;
+        int rightPx;
+
+        if (isAndroid15OrAbove()) {
+            topPx = Math.max(statusBars.top, displayCutout.top);
+            bottomPx = Math.max(navBars.bottom, displayCutout.bottom);
+            leftPx = Math.max(navBars.left, displayCutout.left);
+            rightPx = Math.max(navBars.right, displayCutout.right);
+        } else {
+            topPx = statusBarHidden ? statusBars.top : 0;
+            bottomPx = navBarHidden ? navBars.bottom : 0;
+            leftPx = 0;
+            rightPx = 0;
+        }
+
+        insets.put("top", Math.round(topPx / density));
+        insets.put("bottom", Math.round(bottomPx / density));
+        insets.put("left", Math.round(leftPx / density));
+        insets.put("right", Math.round(rightPx / density));
+
+        Log.d(TAG, "getSafeAreaInsets: top=" + insets.get("top") + "px"
+                + " bottom=" + insets.get("bottom") + "px"
+                + " left=" + insets.get("left") + "px"
+                + " right=" + insets.get("right") + "px"
+                + " (statusHidden=" + statusBarHidden + ", navHidden=" + navBarHidden + ")");
 
         return insets;
     }
@@ -319,26 +356,33 @@ public class CapacitorStatusBar extends Plugin {
         Log.d(TAG, "showNavigationBar: animated=" + animated + ", API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
+        navBarHidden = false;
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (!isAndroid15OrAbove() && !statusBarHidden) {
+            WindowCompat.setDecorFitsSystemWindows(window, true);
+        }
+
+        if (supportsInsetsController()) {
             WindowInsetsController controller = window.getInsetsController();
             if (controller != null) {
-                Log.d(TAG, "showNavigationBar: showing navigation bar (API 30+)");
                 controller.show(WindowInsets.Type.navigationBars());
                 controller.setSystemBarsBehavior(
                         WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-            } else {
-                Log.w(TAG, "showNavigationBar: WindowInsetsController is null");
             }
         } else {
-            Log.d(TAG, "showNavigationBar: showing using system UI flags (API 29)");
             int flags = decorView.getSystemUiVisibility();
             flags &= ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
             flags &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            flags &= ~View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
             decorView.setSystemUiVisibility(flags);
         }
 
-        // Restore navigation bar background color
+        ViewGroup dv = (ViewGroup) decorView;
+        View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+        if (navOverlay != null) {
+            navOverlay.setVisibility(View.VISIBLE);
+        }
+
         applyNavigationBarBackground(activity, currentNavBarColor);
     }
 
@@ -346,169 +390,150 @@ public class CapacitorStatusBar extends Plugin {
         Log.d(TAG, "hideNavigationBar: animation=" + animation + ", API=" + Build.VERSION.SDK_INT);
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
+        navBarHidden = true;
 
-        String animationType = animation != null ? animation.toLowerCase() : "slide";
+        if (!isAndroid15OrAbove()) {
+            WindowCompat.setDecorFitsSystemWindows(window, false);
+        }
 
-        if ("fade".equals(animationType)) {
-            Log.d(TAG, "hideNavigationBar: fade mode - hiding navigation bar with transparent background");
-
-            // Hide the navigation bar icons
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                WindowInsetsController controller = window.getInsetsController();
-                if (controller != null) {
-                    controller.hide(WindowInsets.Type.navigationBars());
-                    controller.setSystemBarsBehavior(
-                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                }
-            } else {
-                decorView.setSystemUiVisibility(
-                        decorView.getSystemUiVisibility()
-                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            }
-
-            // Make background transparent
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                ViewGroup dv = (ViewGroup) decorView;
-                View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-                if (navOverlay != null) {
-                    navOverlay.setBackgroundColor(Color.TRANSPARENT);
-                }
-            } else {
-                window.setNavigationBarColor(Color.TRANSPARENT);
-            }
-        } else if ("slide".equals(animationType)) {
-            Log.d(TAG, "hideNavigationBar: slide mode - hiding navigation bar completely");
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                WindowInsetsController controller = window.getInsetsController();
-                if (controller != null) {
-                    controller.hide(WindowInsets.Type.navigationBars());
-                    controller.setSystemBarsBehavior(
-                            WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                } else {
-                    Log.w(TAG, "hideNavigationBar: WindowInsetsController is null");
-                }
-            } else {
-                Log.d(TAG, "hideNavigationBar: hiding using system UI flags (API 29)");
-                decorView.setSystemUiVisibility(
-                        decorView.getSystemUiVisibility()
-                                | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                                | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-                                | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                                | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
-            }
-
-            // Make navigation bar overlay transparent
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                ViewGroup dv = (ViewGroup) decorView;
-                View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-                if (navOverlay != null) {
-                    navOverlay.setBackgroundColor(Color.TRANSPARENT);
-                }
-            } else {
-                window.setNavigationBarColor(Color.TRANSPARENT);
+        if (supportsInsetsController()) {
+            WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.navigationBars());
+                controller.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
             }
         } else {
-            Log.w(TAG, "hideNavigationBar: unknown animation type '" + animationType + "', defaulting to slide");
-            hideNavigationBar(activity, "slide");
+            decorView.setSystemUiVisibility(
+                    decorView.getSystemUiVisibility()
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_STABLE);
+        }
+
+        ViewGroup dv = (ViewGroup) decorView;
+        View navOverlay = dv.findViewWithTag(NAV_BAR_OVERLAY_TAG);
+        if (navOverlay != null) {
+            navOverlay.setVisibility(View.GONE);
+        }
+
+        if (!isAndroid15OrAbove()) {
+            window.setNavigationBarColor(Color.TRANSPARENT);
         }
     }
 
-    /**
-     * Reapply the current style and colors after showing bars.
-     * This ensures colors are preserved when hiding and then showing.
-     */
     private void reapplyCurrentStyle(Activity activity) {
-        Log.d(TAG, "reapplyCurrentStyle: style=" + currentStyle + ", colorHex=" + currentColorHex);
         Window window = activity.getWindow();
 
-        // Reapply icon appearance
-        if ("LIGHT".equalsIgnoreCase(currentStyle)) {
-            setLightStatusBarIcons(window, true);
-        } else if ("DARK".equalsIgnoreCase(currentStyle)) {
-            setLightStatusBarIcons(window, false);
-        } else if ("CUSTOM".equalsIgnoreCase(currentStyle)) {
-            int parsed = parseColorOrDefault(currentColorHex, Color.BLACK);
-            boolean isLight = isEffectiveLightColor(parsed);
-            setLightStatusBarIcons(window, isLight);
-        } else {
-            // Default: Auto-detect based on system theme
-            boolean isSystemDarkMode = isSystemInDarkMode(activity);
-            setLightStatusBarIcons(window, !isSystemDarkMode);
+        if (!isAndroid15OrAbove() && !statusBarHidden && !navBarHidden) {
+            ensureLegacyOpaqueSystemBars(window);
         }
 
-        // Reapply colors
+        boolean light;
+        if ("LIGHT".equalsIgnoreCase(currentStyle)) {
+            light = true;
+        } else if ("DARK".equalsIgnoreCase(currentStyle)) {
+            light = false;
+        } else if ("CUSTOM".equalsIgnoreCase(currentStyle)) {
+            light = isEffectiveLightColor(parseColorOrDefault(currentColorHex, Color.BLACK));
+        } else {
+            light = !isSystemInDarkMode(activity);
+        }
+
+        applyLegacyContrastPolicy(window);
+        setLightStatusBarIcons(window, light);
         applyStatusBarBackground(activity, currentStatusBarColor);
         applyNavigationBarBackground(activity, currentNavBarColor);
+
+        applyLegacyContrastPolicy(window);
+    }
+
+    private void ensureLegacyOpaqueSystemBars(Window window) {
+        WindowCompat.setDecorFitsSystemWindows(window, true);
+
+        // Ensure bar backgrounds are drawn opaquely on API < 35.
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
+                | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+
+        if (supportsInsetsController()) {
+            WindowInsetsController controller = window.getInsetsController();
+            if (controller != null) {
+                controller.setSystemBarsBehavior(
+                        WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.show(WindowInsets.Type.systemBars());
+            }
+        }
+
+        if (!supportsInsetsController()) {
+            View decorView = window.getDecorView();
+            int flags = decorView.getSystemUiVisibility();
+            flags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
+            flags &= ~View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+            flags &= ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+            flags &= ~View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+            flags &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+            decorView.setSystemUiVisibility(flags);
+        }
+
+        applyLegacyContrastPolicy(window);
+
+        window.getDecorView().requestApplyInsets();
     }
 
     private void setLightStatusBarIcons(Window window, boolean light) {
-        Log.d(TAG, "setLightStatusBarIcons: light=" + light + ", API=" + Build.VERSION.SDK_INT);
         View decorView = window.getDecorView();
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // API 30+ - Use WindowInsetsController
+        if (supportsInsetsController()) {
             WindowInsetsController controller = window.getInsetsController();
             if (controller == null) {
-                Log.w(TAG, "setLightStatusBarIcons: WindowInsetsController is null");
                 return;
             }
             int mask = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS
                     | WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS;
             controller.setSystemBarsAppearance(light ? mask : 0, mask);
-            Log.d(TAG, "setLightStatusBarIcons: applied using WindowInsetsController (API 30+)");
         } else {
             int flags = decorView.getSystemUiVisibility();
             if (light) {
-                // Light background -> dark icons
                 flags |= View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
                 flags |= View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                Log.d(TAG, "setLightStatusBarIcons: set light icons (dark text) (API 29)");
             } else {
-                // Dark background -> light icons
                 flags &= ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR;
                 flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
-                Log.d(TAG, "setLightStatusBarIcons: set dark icons (light text) (API 29)");
             }
             decorView.setSystemUiVisibility(flags);
         }
     }
 
     private void applyStatusBarBackground(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "applyStatusBarBackground: color=#" + Integer.toHexString(color) + ", API=" + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // API 31+: edge-to-edge is enabled, setStatusBarColor() is unreliable.
-            // Use an overlay View drawn on top of the status bar area.
-            ensureStatusBarOverlay(activity, color);
-        } else {
-            // API 29–30: no edge-to-edge, native API works reliably.
-            activity.getWindow().setStatusBarColor(color);
+        Window window = activity.getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        if (supportsContrastControl()) {
+            window.setStatusBarContrastEnforced(false);
         }
+        // Paint status bar transparent; our overlay view paints the color so the
+        // framework's contrast scrim cannot affect it.
+        window.setStatusBarColor(Color.TRANSPARENT);
+        ensureStatusBarOverlay(activity, color);
     }
 
     private void applyNavigationBarBackground(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "applyNavigationBarBackground: color=#" + Integer.toHexString(color) + ", API="
-                + Build.VERSION.SDK_INT);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // API 31+: edge-to-edge is enabled, setNavigationBarColor() is unreliable
-            // (especially gesture navigation which ignores it entirely).
-            // Use an overlay View drawn at the bottom of the screen.
-            ensureNavBarOverlay(activity, color);
-        } else {
-            // API 29–30: no edge-to-edge, native API works for button navigation.
-            activity.getWindow().setNavigationBarColor(color);
+        Window window = activity.getWindow();
+        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        if (supportsContrastControl()) {
+            window.setNavigationBarContrastEnforced(false);
         }
+        window.setNavigationBarColor(Color.TRANSPARENT);
+        ensureNavBarOverlay(activity, color);
     }
 
     private void ensureStatusBarOverlay(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "ensureStatusBarOverlay: color=#" + Integer.toHexString(color));
         ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
         View existing = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
 
-        // Get current status bar height synchronously for immediate sizing
         int initialHeight = 0;
         WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(decorView);
         if (rootInsets != null) {
@@ -516,7 +541,6 @@ public class CapacitorStatusBar extends Plugin {
         }
 
         if (existing == null) {
-            Log.d(TAG, "ensureStatusBarOverlay: creating new overlay, initialHeight=" + initialHeight);
             View overlay = new View(activity);
             overlay.setTag(STATUS_BAR_OVERLAY_TAG);
             overlay.setBackgroundColor(color);
@@ -527,38 +551,21 @@ public class CapacitorStatusBar extends Plugin {
             overlay.setLayoutParams(lp);
 
             decorView.addView(overlay);
-            // Sizing updates are handled by the unified listener in
-            // ensureEdgeToEdgeConfigured
             decorView.requestApplyInsets();
         } else {
-            Log.d(TAG, "ensureStatusBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            // Update height if it was 0 (listener hadn't fired yet)
             ViewGroup.LayoutParams params = existing.getLayoutParams();
             if (params.height == 0 && initialHeight > 0) {
                 params.height = initialHeight;
                 existing.setLayoutParams(params);
-                Log.d(TAG, "ensureStatusBarOverlay: fixed height to " + initialHeight);
             }
         }
     }
 
-    private void removeStatusBarOverlayIfPresent(Activity activity) {
-        Log.d(TAG, "removeStatusBarOverlayIfPresent");
-        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
-        View existing = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-        if (existing != null) {
-            Log.d(TAG, "removeStatusBarOverlayIfPresent: removing overlay");
-            decorView.removeView(existing);
-        }
-    }
-
     private void ensureNavBarOverlay(Activity activity, @ColorInt int color) {
-        Log.d(TAG, "ensureNavBarOverlay: color=#" + Integer.toHexString(color));
         ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
         View existing = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
 
-        // Get current nav bar height synchronously for immediate sizing
         int initialHeight = 0;
         WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(decorView);
         if (rootInsets != null) {
@@ -566,7 +573,6 @@ public class CapacitorStatusBar extends Plugin {
         }
 
         if (existing == null) {
-            Log.d(TAG, "ensureNavBarOverlay: creating new overlay, initialHeight=" + initialHeight);
             View overlay = new View(activity);
             overlay.setTag(NAV_BAR_OVERLAY_TAG);
             overlay.setBackgroundColor(color);
@@ -578,65 +584,24 @@ public class CapacitorStatusBar extends Plugin {
             overlay.setLayoutParams(lp);
 
             decorView.addView(overlay);
-            // Sizing updates are handled by the unified listener in
-            // ensureEdgeToEdgeConfigured
             decorView.requestApplyInsets();
         } else {
-            Log.d(TAG, "ensureNavBarOverlay: updating existing overlay");
             existing.setBackgroundColor(color);
-            // Update height if it was 0 (listener hadn't fired yet)
             ViewGroup.LayoutParams params = existing.getLayoutParams();
             if (params.height == 0 && initialHeight > 0) {
                 params.height = initialHeight;
                 existing.setLayoutParams(params);
-                Log.d(TAG, "ensureNavBarOverlay: fixed height to " + initialHeight);
             }
-        }
-    }
-
-    private void removeNavBarOverlayIfPresent(Activity activity) {
-        Log.d(TAG, "removeNavBarOverlayIfPresent");
-        ViewGroup decorView = (ViewGroup) activity.getWindow().getDecorView();
-        View existing = decorView.findViewWithTag(NAV_BAR_OVERLAY_TAG);
-        if (existing != null) {
-            Log.d(TAG, "removeNavBarOverlayIfPresent: removing overlay");
-            decorView.removeView(existing);
-        }
-    }
-
-    /**
-     * Makes the status bar and navigation bar backgrounds transparent.
-     * This allows content to show through when the bars are hidden.
-     */
-    private void makeStatusBarBackgroundTransparent(Activity activity) {
-        Log.d(TAG, "makeStatusBarBackgroundTransparent: API=" + Build.VERSION.SDK_INT);
-        Window window = activity.getWindow();
-        ViewGroup decorView = (ViewGroup) window.getDecorView();
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            // API 31+: edge-to-edge uses overlay view for status bar
-            View statusBarOverlay = decorView.findViewWithTag(STATUS_BAR_OVERLAY_TAG);
-            if (statusBarOverlay != null) {
-                statusBarOverlay.setBackgroundColor(Color.TRANSPARENT);
-                Log.d(TAG, "makeStatusBarBackgroundTransparent: status bar overlay made transparent");
-            }
-        } else {
-            // API 29–30: no edge-to-edge, native window API
-            window.setStatusBarColor(Color.TRANSPARENT);
-            Log.d(TAG, "makeStatusBarBackgroundTransparent: set native status bar color to transparent");
         }
     }
 
     @ColorInt
     private int parseColorOrDefault(@Nullable String color, @ColorInt int def) {
         if (color == null) {
-            Log.d(TAG, "parseColorOrDefault: color is null, using default");
             return def;
         }
         try {
-            int parsed = parseHexColor(color);
-            Log.d(TAG, "parseColorOrDefault: parsed color=" + color + " -> #" + Integer.toHexString(parsed));
-            return parsed;
+            return parseHexColor(color);
         } catch (IllegalArgumentException ex) {
             Log.w(TAG, "parseColorOrDefault: invalid color=" + color + ", using default");
             return def;
@@ -644,12 +609,7 @@ public class CapacitorStatusBar extends Plugin {
     }
 
     /**
-     * Parse hex color string similar to iOS implementation.
-     * Handles both 6-digit (#RRGGBB) and 8-digit (#RRGGBBAA) formats.
-     *
-     * @param hex The hex color string (with or without # prefix)
-     * @return The parsed color as an integer
-     * @throws IllegalArgumentException if the color format is invalid
+     * Parse hex color string. Handles #RRGGBB and #RRGGBBAA formats.
      */
     private int parseHexColor(String hex) throws IllegalArgumentException {
         String hexSanitized = hex.trim().replaceFirst("^#", "");
@@ -662,15 +622,12 @@ public class CapacitorStatusBar extends Plugin {
             long rgb = Long.parseLong(hexSanitized, 16);
 
             if (hexSanitized.length() == 6) {
-                // 6-digit format: #RRGGBB (opaque)
                 return (int) (0xFF000000L | rgb);
             } else {
-                // 8-digit format: #RRGGBBAA
                 int r = (int) ((rgb & 0xFF000000L) >> 24);
                 int g = (int) ((rgb & 0x00FF0000L) >> 16);
                 int b = (int) ((rgb & 0x0000FF00L) >> 8);
                 int a = (int) (rgb & 0x000000FFL);
-
                 return Color.argb(a, r, g, b);
             }
         } catch (NumberFormatException e) {
@@ -678,64 +635,33 @@ public class CapacitorStatusBar extends Plugin {
         }
     }
 
-    /**
-     * Calculate effective brightness considering alpha channel.
-     * For transparent colors, we assume they will be blended over a white
-     * background.
-     *
-     * @param color The color to analyze
-     * @return true if the effective color appears light, false if dark
-     */
     private boolean isEffectiveLightColor(@ColorInt int color) {
         int alpha = Color.alpha(color);
 
         if (alpha == 255) {
-            // Fully opaque - use standard luminance calculation
             return ColorUtils.calculateLuminance(color) > 0.5;
         }
 
-        // For transparent colors, calculate effective color when blended over white
-        // background
         float alphaRatio = alpha / 255.0f;
         int r = Color.red(color);
         int g = Color.green(color);
         int b = Color.blue(color);
 
-        // Blend with white background (255, 255, 255)
         int effectiveR = (int) (r * alphaRatio + 255 * (1 - alphaRatio));
         int effectiveG = (int) (g * alphaRatio + 255 * (1 - alphaRatio));
         int effectiveB = (int) (b * alphaRatio + 255 * (1 - alphaRatio));
 
-        int effectiveColor = Color.rgb(effectiveR, effectiveG, effectiveB);
-        return ColorUtils.calculateLuminance(effectiveColor) > 0.5;
+        return ColorUtils.calculateLuminance(Color.rgb(effectiveR, effectiveG, effectiveB)) > 0.5;
     }
 
-    /**
-     * Apply default status bar style based on system theme.
-     * Automatically detects if the device is in light or dark mode and applies the
-     * appropriate style.
-     *
-     * @param activity The activity to apply the style to
-     */
     public void applyDefaultStyle(Activity activity) {
         boolean isDarkMode = isSystemInDarkMode(activity);
-        String style = isDarkMode ? "DARK" : "LIGHT";
-        Log.d(TAG, "applyDefaultStyle: detected system theme=" + (isDarkMode ? "dark" : "light") + ", applying style="
-                + style);
-        setStyle(activity, style, null);
+        setStyle(activity, isDarkMode ? "DARK" : "LIGHT", null);
     }
 
-    /**
-     * Check if the system is currently in dark mode.
-     *
-     * @param activity The activity to check the configuration from
-     * @return true if system is in dark mode, false otherwise
-     */
     private boolean isSystemInDarkMode(Activity activity) {
         int nightModeFlags = activity.getResources().getConfiguration().uiMode
                 & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
-        boolean isDarkMode = nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
-        Log.d(TAG, "isSystemInDarkMode: " + isDarkMode);
-        return isDarkMode;
+        return nightModeFlags == android.content.res.Configuration.UI_MODE_NIGHT_YES;
     }
 }

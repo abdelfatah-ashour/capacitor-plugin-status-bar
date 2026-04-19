@@ -1,7 +1,5 @@
 package com.cap.plugins.statusbar;
 
-import android.view.View;
-
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
@@ -15,8 +13,7 @@ public class CapacitorStatusBarPlugin extends Plugin {
     public void load() {
         super.load();
         getActivity().runOnUiThread(() -> {
-            View webView = getBridge().getWebView();
-            implementation.ensureEdgeToEdgeConfigured(getActivity(), webView);
+            implementation.ensureEdgeToEdgeConfigured(getActivity());
             implementation.applyDefaultStyle(getActivity());
         });
     }

@@ -21,9 +21,7 @@ import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
-import com.getcapacitor.Plugin;
-
-public class CapacitorStatusBar extends Plugin {
+public class CapacitorStatusBar {
     private static final String TAG = "CapacitorStatusBar";
     private static final String STATUS_BAR_OVERLAY_TAG = "capacitor_status_bar_overlay";
     private static final String NAV_BAR_OVERLAY_TAG = "capacitor_navigation_bar_overlay";
@@ -58,7 +56,7 @@ public class CapacitorStatusBar extends Plugin {
      * Configure layout behavior for the current API level. Called once from
      * CapacitorStatusBarPlugin.load().
      */
-    public void ensureEdgeToEdgeConfigured(Activity activity, @Nullable View webView) {
+    public void ensureEdgeToEdgeConfigured(Activity activity) {
         Window window = activity.getWindow();
         View decorView = window.getDecorView();
         configureWebview(window, decorView);
@@ -118,20 +116,6 @@ public class CapacitorStatusBar extends Plugin {
             applyLegacyContrastPolicy(window);
             Log.d(TAG, "ensureEdgeToEdgeConfigured: fitted layout (API " + Build.VERSION.SDK_INT + ")");
         }
-    }
-
-    private void configureAndroid14OrBelow(Window window) {
-        // API < 35: keep WebView inside the safe area. System draws bars.
-        WindowCompat.setDecorFitsSystemWindows(window, true);
-
-        // Ensure the system draws bar backgrounds with the colors we set
-        // (not a translucent scrim).
-        window.clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS
-                | WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-
-        applyLegacyContrastPolicy(window);
-        Log.d(TAG, "ensureEdgeToEdgeConfigured: fitted layout (API " + Build.VERSION.SDK_INT + ")");
     }
 
     public void setOverlaysWebView(Activity activity, boolean overlay) {
